@@ -45,11 +45,7 @@ async function exitImmersiveFullscreen() {
 function Brand({ compact = false }) {
   return (
     <div className={`brand ${compact ? 'brand--compact' : ''}`} aria-label="Texmaco Rail & Engineering">
-      <div className="brand-mark"><span>T</span></div>
-      <div className="brand-words">
-        <strong>TEXMACO</strong>
-        {!compact && <small>RAIL &amp; ENGINEERING LTD.</small>}
-      </div>
+      <img className="brand-logo" src="/assets/texmaco-logo.png" alt="Texmaco Rail & Engineering Ltd." draggable="false" />
     </div>
   );
 }
