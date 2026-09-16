@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync } from 'node:fs';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -34,8 +35,17 @@ app.use('/api/admin', adminRouter);
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(root, '../dist');
-app.use(express.static(dist));
-app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+const frontendIndex = path.join(dist, 'index.html');
+if (existsSync(frontendIndex)) {
+  app.use(express.static(dist));
+  app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(frontendIndex));
+} else {
+  app.get('/', (_req, res) => res.json({
+    service: 'Texmaco Brochure API',
+    status: 'online',
+    health: '/api/health',
+  }));
+}
 
 app.use((error, _req, res, _next) => {
   console.error(error);
