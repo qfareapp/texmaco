@@ -168,6 +168,12 @@ function AccessGate({ onClose, onSuccess }) {
   const [busy, setBusy] = useState(false);
   const refs = useRef([]);
 
+  const keepFieldVisible = (event) => {
+    const field = event.target;
+    if (!field.matches('input, select, textarea')) return;
+    window.setTimeout(() => field.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 280);
+  };
+
   const update = (event) => setForm((value) => ({ ...value, [event.target.name]: event.target.value }));
   const submitDetails = async (event) => {
     event.preventDefault();
@@ -182,7 +188,6 @@ function AccessGate({ onClose, onSuccess }) {
       const result = await publicApi.requestOtp(form);
       setSentCode(result.demoOtp || '');
       setStep('otp');
-      window.setTimeout(() => refs.current[0]?.focus(), 150);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   };
@@ -220,8 +225,8 @@ function AccessGate({ onClose, onSuccess }) {
               <h3>Unlock the full brochure</h3>
               <p>Tell us a little about yourself to explore our complete capabilities.</p>
             </div>
-            <form onSubmit={submitDetails} className="lead-form">
-              <label><span>Your name</span><input name="name" value={form.name} onChange={update} placeholder="e.g. Arjun Mehta" autoFocus /></label>
+            <form onSubmit={submitDetails} onFocusCapture={keepFieldVisible} className="lead-form">
+              <label><span>Your name</span><input name="name" value={form.name} onChange={update} placeholder="e.g. Arjun Mehta" /></label>
               <label><span>Company name</span><input name="company" value={form.company} onChange={update} placeholder="Your organisation" /></label>
               <label className="full"><span>Area of interest</span><select name="domain" value={form.domain} onChange={update}><option value="">Select a rail domain</option>{railDomains.map((item) => <option key={item}>{item}</option>)}</select></label>
               <label><span>Work email</span><input name="email" type="email" value={form.email} onChange={update} placeholder="you@company.com" /></label>
@@ -239,7 +244,7 @@ function AccessGate({ onClose, onSuccess }) {
               <h3>Check your inbox</h3>
               <p>Enter the 6-digit verification code sent to <strong>{form.email}</strong>.</p>
             </div>
-            <form onSubmit={verify} className="otp-form">
+            <form onSubmit={verify} onFocusCapture={keepFieldVisible} className="otp-form">
               <div className="otp-fields">
                 {otp.map((digit, index) => <input key={index} ref={(node) => { refs.current[index] = node; }} value={digit} onChange={(event) => changeOtp(index, event.target.value)} onKeyDown={(event) => { if (event.key === 'Backspace' && !digit && index) refs.current[index - 1]?.focus(); }} inputMode="numeric" maxLength="1" aria-label={`Digit ${index + 1}`} />)}
               </div>
@@ -296,7 +301,7 @@ function WhatsAppChat({ slide, segmentLabel }) {
         </div>
         <form onSubmit={continueOnWhatsApp}>
           <label htmlFor="whatsapp-query">Your enquiry</label>
-          <textarea id="whatsapp-query" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type your question here…" rows="3" autoFocus />
+          <textarea id="whatsapp-query" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type your question here…" rows="3" />
           <button type="submit" disabled={!query.trim()}><Send /> Continue on WhatsApp</button>
           <small>You’ll be redirected to WhatsApp to send this message.</small>
         </form>

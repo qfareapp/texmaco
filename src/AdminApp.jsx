@@ -30,7 +30,7 @@ function Login({ onLogin }) {
         <AdminLogo />
         <form onSubmit={submit} className="admin-login-form">
           <div><span>Secure access</span><h2>Welcome back</h2><p>Sign in to manage your digital brochure.</p></div>
-          <label><span>Email address</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@texmaco.in" required autoFocus /></label>
+          <label><span>Email address</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@texmaco.in" required /></label>
           <label><span>Password</span><div className="password-field"><input type={show ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required /><button type="button" onClick={() => setShow(!show)}>{show ? <EyeOff /> : <Eye />}</button></div></label>
           {error && <p className="admin-error">{error}</p>}
           <button className="admin-primary" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : 'Sign in to studio'}</button>

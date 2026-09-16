@@ -145,9 +145,9 @@ button { color: inherit; }
 .people { position: absolute; right: 10%; bottom: 13%; width: 50%; height: 60%; display: flex; align-items: flex-end; justify-content: center; gap: 3%; }.people i { display:block; width:22%; height:68%; background: linear-gradient(rgba(255,255,255,.24),rgba(0,0,0,.35)); border-radius: 45% 45% 5% 5%; clip-path: polygon(35% 0,65% 0,70% 15%,62% 25%,78% 35%,90% 100%,10% 100%,22% 35%,38% 25%,30% 15%); }.people i:nth-child(2){height:82%}.people i:nth-child(3){height:60%}
 
 /* Access gate */
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(1,8,9,.8); backdrop-filter: blur(15px); display: flex; align-items: stretch; animation: fadeIn .35s; user-select: auto; }
+.modal-backdrop { position: fixed; inset: 0; height: 100dvh; z-index: 100; background: rgba(1,8,9,.8); backdrop-filter: blur(15px); display: flex; align-items: stretch; animation: fadeIn .35s; user-select: auto; }
 @keyframes fadeIn { from { opacity: 0; } }
-.gate-panel { position: relative; width: min(620px, 55vw); background: #f1eee6; color: #122326; padding: clamp(24px, 4.2vh, 48px) clamp(36px, 5vw, 70px); overflow-y: auto; }
+.gate-panel { position: relative; width: min(620px, 55vw); max-height: 100dvh; background: #f1eee6; color: #122326; padding: clamp(24px, 4.2vh, 48px) clamp(36px, 5vw, 70px); overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 25vh; }
 .gate-brand { position: absolute; top: 28px; left: 34px; color: #173032; transform: scale(.77); transform-origin: left top; }.gate-brand .brand-mark { color: var(--orange); }
 .gate-close { position: absolute; right: 25px; top: 25px; color: #183033; border-color: rgba(0,0,0,.14); background: transparent; z-index: 3; }
 .gate-progress { height: 25px; display: flex; align-items: center; justify-content: center; margin-bottom: 2vh; }.gate-progress span { width: 21px; height: 21px; border-radius: 50%; border: 1px solid #b9b8b1; display: grid; place-items: center; font-size: 8px; color: #888; }.gate-progress span.done { background: #17393a; border-color: #17393a; color: #fff; }.gate-progress i { width: 45px; height: 1px; background: #ccc9c0; }.gate-progress i.done { background: #17393a; }
