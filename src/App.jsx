@@ -10,6 +10,22 @@ import { railDomains, segments as defaultSegments, slides as defaultSlides } fro
 const LOCKED_FROM = 6;
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '919147369654';
 
+async function enterImmersiveFullscreen() {
+  const root = document.documentElement;
+  const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+  try {
+    if (!fullscreenElement && requestFullscreen) await requestFullscreen.call(root);
+  } catch {
+    return false;
+  }
+  if (screen.orientation?.lock) {
+    try { await screen.orientation.lock('landscape'); return true; }
+    catch { /* Some mobile browsers require the user to rotate the device. */ }
+  }
+  return window.matchMedia('(orientation: landscape)').matches;
+}
+
 function Brand({ compact = false }) {
   return (
     <div className={`brand ${compact ? 'brand--compact' : ''}`} aria-label="Texmaco Rail & Engineering">
@@ -28,12 +44,7 @@ function Welcome({ onEnter }) {
   const enter = async (fullscreen) => {
     setStarting(true);
     if (fullscreen) {
-      try {
-        await document.documentElement.requestFullscreen?.();
-        await screen.orientation?.lock?.('landscape');
-      } catch {
-        // Fullscreen/orientation permission can be declined; the brochure still works.
-      }
+      await enterImmersiveFullscreen();
     }
     window.setTimeout(onEnter, 260);
   };
@@ -351,7 +362,7 @@ function Brochure() {
   const [gateOpen, setGateOpen] = useState(false);
   const [unlocked, setUnlocked] = useState(() => Boolean(sessionStorage.getItem('texmaco-brochure-access')));
   const [autoplay, setAutoplay] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement));
+  const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement || document.webkitFullscreenElement));
   const [chromeVisible, setChromeVisible] = useState(true);
   const touchStart = useRef(null);
   const wheelLock = useRef(false);
@@ -369,12 +380,16 @@ function Brochure() {
 
   useEffect(() => {
     const updateFullscreen = () => {
-      const active = Boolean(document.fullscreenElement);
+      const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
       setIsFullscreen(active);
       if (!active) setChromeVisible(true);
     };
     document.addEventListener('fullscreenchange', updateFullscreen);
-    return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+    document.addEventListener('webkitfullscreenchange', updateFullscreen);
+    return () => {
+      document.removeEventListener('fullscreenchange', updateFullscreen);
+      document.removeEventListener('webkitfullscreenchange', updateFullscreen);
+    };
   }, []);
 
   const navigate = useCallback((target) => {
@@ -435,7 +450,7 @@ function Brochure() {
           <span className="chapter-name">{segments.find((item) => item.id === slides[current].segment)?.label}</span>
           <div className="header-actions">
             <button className="quiet-button" onClick={() => setAutoplay((value) => !value)}>{autoplay ? <Pause size={15} /> : <Play size={15} />}{autoplay ? 'Pause' : 'Autoplay'}</button>
-            <button className="icon-button" onClick={() => document.documentElement.requestFullscreen?.()} aria-label="Fullscreen"><Expand /></button>
+            <button className="icon-button" onClick={enterImmersiveFullscreen} aria-label="Fullscreen landscape"><Expand /></button>
           </div>
         </header>
         <footer className="stage-footer">
@@ -450,6 +465,7 @@ function Brochure() {
         <div className="swipe-hint"><ArrowLeft size={14} /> swipe to explore <ArrowRight size={14} /></div>
         <FeaturedVideo video={featuredVideo} />
         <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} />
+        {isFullscreen && <div className="rotate-device-hint"><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span></div>}
       </section>
       {gateOpen && <AccessGate onClose={() => setGateOpen(false)} onSuccess={() => { setUnlocked(true); setGateOpen(false); setCurrent(LOCKED_FROM); }} />}
     </main>
