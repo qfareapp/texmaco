@@ -198,10 +198,14 @@ function AccessGate({ onClose, onSuccess }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const refs = useRef([]);
+  const successTimer = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(successTimer.current), []);
 
   const keepFieldVisible = (event) => {
     const field = event.target;
     if (!field.matches('input, select, textarea')) return;
+    void exitImmersiveFullscreen();
     window.setTimeout(() => field.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 280);
   };
 
@@ -234,7 +238,8 @@ function AccessGate({ onClose, onSuccess }) {
       const result = await publicApi.verifyOtp(form.email, otp.join(''));
       sessionStorage.setItem('texmaco-brochure-access', result.accessToken);
       sessionStorage.setItem('texmaco-brochure-lead', JSON.stringify(result.lead));
-      onSuccess();
+      setStep('success');
+      successTimer.current = window.setTimeout(onSuccess, 2400);
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   };
@@ -242,11 +247,11 @@ function AccessGate({ onClose, onSuccess }) {
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Unlock full brochure">
       <div className="gate-panel">
-        <button className="icon-button gate-close" onClick={onClose} aria-label="Close"><X /></button>
+        {step !== 'success' && <button className="icon-button gate-close" onClick={onClose} aria-label="Close"><X /></button>}
         <div className="gate-brand"><Brand /></div>
         <div className="gate-progress">
-          <span className="done"><Check size={12} /></span><i className={step === 'otp' ? 'done' : ''} />
-          <span className={step === 'otp' ? 'done' : ''}>{step === 'otp' ? '2' : '2'}</span>
+          <span className="done"><Check size={12} /></span><i className={step !== 'details' ? 'done' : ''} />
+          <span className={step !== 'details' ? 'done' : ''}>{step === 'success' ? <Check size={12} /> : '2'}</span>
         </div>
 
         {step === 'details' ? (
@@ -267,7 +272,7 @@ function AccessGate({ onClose, onSuccess }) {
             </form>
             <p className="privacy"><ShieldCheck size={14} /> Your details are secure and will only be used to respond to your interest.</p>
           </>
-        ) : (
+        ) : step === 'otp' ? (
           <>
             <div className="gate-heading otp-heading">
               <div className="mail-orbit"><Mail /></div>
@@ -285,6 +290,17 @@ function AccessGate({ onClose, onSuccess }) {
               <button className="resend" type="button" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { const result = await publicApi.requestOtp(form); setSentCode(result.demoOtp || ''); setOtp(['','','','','','']); } catch (err) { setError(err.message); } finally { setBusy(false); } }}>Resend code</button>
             </form>
           </>
+        ) : (
+          <div className="unlock-success" role="status" aria-live="assertive">
+            <div className="unlock-celebration">
+              <span><Check /></span>
+              <i /><i /><i /><i /><i /><i />
+            </div>
+            <span className="unlock-kicker">Access confirmed</span>
+            <h3>You have successfully unlocked the full brochure</h3>
+            <p>Welcome to the complete Texmaco experience.</p>
+            <div className="unlock-loader"><i /></div>
+          </div>
         )}
       </div>
       <div className="gate-preview">
