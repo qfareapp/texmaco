@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft,
   ChevronRight, Expand, Eye, EyeOff, Globe2, Mail, Menu, MousePointer2,
-  MessageCircle, Pause, Play, RotateCcw, Send, ShieldCheck, TrainFront, X,
+  MessageCircle, Minimize, Pause, Play, RotateCcw, Send, ShieldCheck, TrainFront, X,
 } from 'lucide-react';
 import { publicApi } from './api';
 import { railDomains, segments as defaultSegments, slides as defaultSlides } from './data/slides';
@@ -24,6 +24,22 @@ async function enterImmersiveFullscreen() {
     catch { /* Some mobile browsers require the user to rotate the device. */ }
   }
   return window.matchMedia('(orientation: landscape)').matches;
+}
+
+async function exitImmersiveFullscreen() {
+  const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!fullscreenElement || !exitFullscreen) return false;
+
+  try { screen.orientation?.unlock?.(); }
+  catch { /* Exiting fullscreen should still work if orientation unlock is denied. */ }
+
+  try {
+    await exitFullscreen.call(document);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function Brand({ compact = false }) {
@@ -454,7 +470,13 @@ function Brochure() {
           <span className="chapter-name">{segments.find((item) => item.id === slides[current].segment)?.label}</span>
           <div className="header-actions">
             <button className="quiet-button" onClick={() => setAutoplay((value) => !value)}>{autoplay ? <Pause size={15} /> : <Play size={15} />}{autoplay ? 'Pause' : 'Autoplay'}</button>
-            <button className="icon-button" onClick={enterImmersiveFullscreen} aria-label="Fullscreen landscape"><Expand /></button>
+            <button
+              className="icon-button"
+              onClick={isFullscreen ? exitImmersiveFullscreen : enterImmersiveFullscreen}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen landscape'}
+            >
+              {isFullscreen ? <Minimize /> : <Expand />}
+            </button>
           </div>
         </header>
         <footer className="stage-footer">
