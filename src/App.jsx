@@ -41,10 +41,14 @@ function Brand({ compact = false }) {
 function Welcome({ onEnter }) {
   const [starting, setStarting] = useState(false);
 
-  const enter = async (fullscreen) => {
+  const enter = (fullscreen) => {
     setStarting(true);
     if (fullscreen) {
-      await enterImmersiveFullscreen();
+      // Some mobile browsers keep orientation.lock() pending while the first
+      // fullscreen transition is in progress. Do not delay mounting the
+      // brochure on that browser-controlled promise or the faded welcome
+      // screen can remain visible as a blank page.
+      void enterImmersiveFullscreen();
     }
     window.setTimeout(onEnter, 260);
   };
