@@ -11,6 +11,22 @@ import { railDomains, segments as defaultSegments, slides as defaultSlides } fro
 
 const LOCKED_FROM = 6;
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '919147369654';
+const BROCHURE_ACCESS_KEY = 'texmaco-brochure-access';
+const BROCHURE_LEAD_KEY = 'texmaco-brochure-lead';
+const readVisitorStorage = (key) => {
+  try {
+    const persistentValue = localStorage.getItem(key);
+    if (persistentValue) return persistentValue;
+    const sessionValue = sessionStorage.getItem(key);
+    if (sessionValue) localStorage.setItem(key, sessionValue);
+    return sessionValue;
+  }
+  catch { return null; }
+};
+const saveVisitorStorage = (key, value) => {
+  try { localStorage.setItem(key, value); } catch { /* Storage can be disabled in private browsing. */ }
+  try { sessionStorage.setItem(key, value); } catch { /* Keep the current visit working when possible. */ }
+};
 const isStandaloneMode = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 const isIPhoneSafari = () => {
   const userAgent = window.navigator.userAgent;
@@ -287,8 +303,8 @@ function AccessGate({ onClose, onSuccess }) {
     setBusy(true); setError('');
     try {
       const result = await publicApi.verifyOtp(form.email, otp.join(''));
-      sessionStorage.setItem('texmaco-brochure-access', result.accessToken);
-      sessionStorage.setItem('texmaco-brochure-lead', JSON.stringify(result.lead));
+      saveVisitorStorage(BROCHURE_ACCESS_KEY, result.accessToken);
+      saveVisitorStorage(BROCHURE_LEAD_KEY, JSON.stringify(result.lead));
       setStep('success');
       successTimer.current = window.setTimeout(onSuccess, 2400);
     } catch (err) { setError(err.message); }
@@ -378,7 +394,7 @@ function WhatsAppChat({ slide, segmentLabel, onTypingFocus, onTypingEnd }) {
     const message = query.trim();
     if (!message) return;
     let visitor = null;
-    try { visitor = JSON.parse(sessionStorage.getItem('texmaco-brochure-lead')); } catch { /* Optional visitor context. */ }
+    try { visitor = JSON.parse(readVisitorStorage(BROCHURE_LEAD_KEY)); } catch { /* Optional visitor context. */ }
     const context = [
       'Hello Texmaco team,',
       '',
@@ -482,7 +498,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
     return window.innerWidth > 900 && !shortLandscapePhone;
   });
   const [gateOpen, setGateOpen] = useState(false);
-  const [unlocked, setUnlocked] = useState(() => Boolean(sessionStorage.getItem('texmaco-brochure-access')));
+  const [unlocked, setUnlocked] = useState(() => Boolean(readVisitorStorage(BROCHURE_ACCESS_KEY)));
   const [autoplay, setAutoplay] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement || document.webkitFullscreenElement));
   const [chromeVisible, setChromeVisible] = useState(true);

@@ -51,7 +51,7 @@ leadsRouter.post('/verify-otp', rateLimit({ windowMs: 10 * 60 * 1000, limit: 15 
     lead.lastLoginAt = new Date();
     lead.otpHash = undefined; lead.otpExpiresAt = undefined; lead.otpAttempts = 0;
     await lead.save();
-    const accessToken = jwt.sign({ sub: lead._id, role: 'visitor' }, config.jwtSecret, { expiresIn: '24h' });
+    const accessToken = jwt.sign({ sub: lead._id, role: 'visitor' }, config.jwtSecret, { expiresIn: '365d' });
     res.json({ accessToken, lead: { name: lead.name, email: lead.email } });
   } catch (error) { next(error); }
 });
