@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, ChevronLeft, ChevronRight, Clapperboard, Cloud,
   Eye, EyeOff, FileImage, ImagePlus, LayoutDashboard, LoaderCircle, LogOut,
-  Menu, Newspaper, Pencil, Play, Plus, RefreshCw, Search, Tags, Trash2, Upload, Users, X,
+  Link2, Menu, Newspaper, Pencil, Play, Plus, RefreshCw, Search, Tags, Trash2, Upload, Users, X,
 } from 'lucide-react';
 import { createAdminApi, loginAdmin } from './api';
 import './admin.css';
@@ -122,6 +122,8 @@ function SegmentsPage({ segments, reload, api }) {
 function VideoPage({ video, reload, api }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(video?.url || '');
+  const [mode, setMode] = useState(video?.sourceType === 'youtube' || video?.sourceType === 'drive' ? 'link' : 'upload');
+  const [externalUrl, setExternalUrl] = useState(video?.externalUrl || '');
   const [title, setTitle] = useState(video?.title || 'Discover Texmaco');
   const [description, setDescription] = useState(video?.description || '');
   const [active, setActive] = useState(video?.active ?? true);
@@ -133,6 +135,8 @@ function VideoPage({ video, reload, api }) {
   useEffect(() => {
     setPreview(video?.url || ''); setTitle(video?.title || 'Discover Texmaco');
     setDescription(video?.description || ''); setActive(video?.active ?? true);
+    setExternalUrl(video?.externalUrl || '');
+    setMode(video?.sourceType === 'youtube' || video?.sourceType === 'drive' ? 'link' : 'upload');
   }, [video]);
 
   const selectVideo = (event) => {
@@ -153,32 +157,49 @@ function VideoPage({ video, reload, api }) {
     catch (error) { setMessage(error.message); }
     finally { setBusy(false); setUploadStage(''); }
   };
+  const saveLink = async (event) => {
+    event.preventDefault();
+    if (!externalUrl.trim()) { setMessage('Paste a YouTube or Google Drive video link first.'); return; }
+    setBusy(true); setMessage('');
+    try {
+      await api.updateVideo({ title, description, active, externalUrl: externalUrl.trim() });
+      setFile(null); setPreview(''); setMessage('External video link saved successfully.'); await reload();
+    } catch (error) { setMessage(error.message); }
+    finally { setBusy(false); }
+  };
   const saveDetails = async () => {
     setBusy(true); setMessage('');
     try { await api.updateVideo({ title, description, active }); setMessage('Video settings updated.'); await reload(); }
     catch (error) { setMessage(error.message); } finally { setBusy(false); }
   };
   const remove = async () => {
-    if (!window.confirm('Remove the featured video from the brochure and Cloudinary?')) return;
+    if (!window.confirm('Remove the featured video from the brochure?')) return;
     setBusy(true); setMessage('');
     try { await api.deleteVideo(); setFile(null); setPreview(''); setMessage('Featured video removed.'); await reload(); }
     catch (error) { setMessage(error.message); } finally { setBusy(false); }
   };
 
+  const hasVideo = Boolean(video?.url || video?.embedUrl);
+  const savedLinkPreview = Boolean(video?.embedUrl && externalUrl === video.externalUrl);
+
   return <div className="video-admin-page">
-    <section className="video-admin-intro"><div><span><Clapperboard /> Featured media</span><h2>Give visitors the full Texmaco story.</h2><p>Upload one featured corporate video. It will appear as an animated floating invitation in the brochure and play in an immersive overlay.</p></div><div className="video-spec"><strong>Recommended</strong><span>MP4 · H.264 · 1080p</span><span>Landscape 16:9 · Max 400 MB</span></div></section>
-    <form className="video-admin-card" onSubmit={upload}>
+    <section className="video-admin-intro"><div><span><Clapperboard /> Featured media</span><h2>Give visitors the full Texmaco story.</h2><p>Upload a video to Cloudinary or connect one from YouTube or Google Drive. The brochure launches it in an immersive fullscreen player.</p></div><div className="video-spec"><strong>Two options</strong><span>Cloudinary · Up to 400 MB</span><span>YouTube or public Google Drive link</span></div></section>
+    <div className="video-source-tabs"><button className={mode === 'upload' ? 'active' : ''} onClick={() => { setMode('upload'); setMessage(''); }}><Cloud /> Upload video</button><button className={mode === 'link' ? 'active' : ''} onClick={() => { setMode('link'); setMessage(''); }}><Link2 /> Add video link</button></div>
+    <form className="video-admin-card" onSubmit={mode === 'upload' ? upload : saveLink}>
       <div className="video-preview">
-        {preview ? <video src={preview} controls preload="metadata" /> : <label><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={selectVideo} /><span><Upload /><strong>Choose your Texmaco video</strong><small>MP4, WebM or MOV · Up to 400 MB</small></span></label>}
-        {preview && <label className="replace-video"><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={selectVideo} /><Pencil /> Choose another video</label>}
+        {mode === 'upload' ? <>
+          {preview ? <video src={preview} controls preload="metadata" /> : <label><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={selectVideo} /><span><Upload /><strong>Choose your Texmaco video</strong><small>MP4, WebM or MOV · Up to 400 MB</small></span></label>}
+          {preview && <label className="replace-video"><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={selectVideo} /><Pencil /> Choose another video</label>}
+        </> : savedLinkPreview ? <iframe src={video.embedUrl.replace('autoplay=1', 'autoplay=0')} title="External video preview" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : <div className="video-link-placeholder"><Link2 /><strong>Connect an external video</strong><span>Paste a YouTube link or a Google Drive sharing link.</span><small>For Drive, set access to “Anyone with the link”.</small></div>}
       </div>
       <div className="video-fields">
+        {mode === 'link' && <label><span>YouTube or Google Drive link</span><input type="url" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://youtu.be/... or https://drive.google.com/file/d/..." required /></label>}
         <label><span>Video title</span><input value={title} onChange={(e)=>setTitle(e.target.value)} maxLength="120" placeholder="Discover Texmaco" /></label>
         <label><span>Short description</span><textarea value={description} onChange={(e)=>setDescription(e.target.value)} maxLength="240" rows="3" placeholder="Engineering a stronger tomorrow." /></label>
         <label className="publish-toggle"><input type="checkbox" checked={active} onChange={(e)=>setActive(e.target.checked)} /><i /><span><strong>Show on brochure</strong>Display the animated video button</span></label>
         {uploadStage && <div className={`video-upload-progress ${uploadStage === 'cloudinary' ? 'processing' : ''}`}><div><span>{uploadStage === 'cloudinary' ? 'Processing in Cloudinary' : 'Uploading video'}</span><strong>{uploadStage === 'cloudinary' ? 'Please wait…' : `${uploadProgress}%`}</strong></div><div className="video-progress-track"><i style={{ width: `${uploadProgress}%` }} /></div><small>{uploadStage === 'cloudinary' ? 'Cloudinary is receiving and preparing the video. Large files can take several minutes.' : 'Transferring the selected file to the secure upload server.'}</small></div>}
         {message && <p className="video-message">{message}</p>}
-        <div className="video-actions">{video?.url && <button type="button" className="remove-video" onClick={remove} disabled={busy}><Trash2 /> Remove</button>}<button type="button" onClick={saveDetails} disabled={busy || !video?.url}>Save details</button><button className="admin-primary" disabled={busy || !file}>{busy ? <LoaderCircle className="spin" /> : <><Cloud /> {video?.url ? 'Replace video' : 'Upload video'}</>}</button></div>
+        <div className="video-actions">{hasVideo && <button type="button" className="remove-video" onClick={remove} disabled={busy}><Trash2 /> Remove</button>}<button type="button" onClick={saveDetails} disabled={busy || !hasVideo}>Save details</button><button className="admin-primary" disabled={busy || (mode === 'upload' ? !file : !externalUrl.trim())}>{busy ? <LoaderCircle className="spin" /> : mode === 'upload' ? <><Cloud /> {video?.url ? 'Replace video' : 'Upload video'}</> : <><Link2 /> Save video link</>}</button></div>
       </div>
     </form>
   </div>;

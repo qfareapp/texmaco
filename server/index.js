@@ -20,6 +20,7 @@ app.use(helmet({
     directives: {
       "img-src": ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
       "media-src": ["'self'", 'blob:', 'https://res.cloudinary.com'],
+      "frame-src": ["'self'", 'https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://drive.google.com'],
       "connect-src": ["'self'", ...config.origins],
     },
   },

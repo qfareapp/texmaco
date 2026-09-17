@@ -31,6 +31,38 @@ const uploadVideoFile = multer({
   },
 });
 
+function normalizeExternalVideoUrl(value) {
+  let parsed;
+  try { parsed = new URL(String(value || '').trim()); }
+  catch { throw Object.assign(new Error('Enter a valid YouTube or Google Drive link.'), { status: 400 }); }
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+
+  let youtubeId = '';
+  if (host === 'youtu.be') youtubeId = parsed.pathname.split('/').filter(Boolean)[0] || '';
+  if (host === 'youtube.com' || host === 'm.youtube.com') {
+    youtubeId = parsed.searchParams.get('v') || parsed.pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1] || '';
+  }
+  if (youtubeId && /^[a-zA-Z0-9_-]{6,20}$/.test(youtubeId)) {
+    return {
+      sourceType: 'youtube',
+      externalUrl: parsed.toString(),
+      embedUrl: `https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&playsinline=1`,
+    };
+  }
+
+  if (host === 'drive.google.com') {
+    const driveId = parsed.pathname.match(/\/file\/d\/([^/]+)/)?.[1] || parsed.searchParams.get('id') || '';
+    if (driveId && /^[a-zA-Z0-9_-]{10,}$/.test(driveId)) {
+      return {
+        sourceType: 'drive',
+        externalUrl: parsed.toString(),
+        embedUrl: `https://drive.google.com/file/d/${driveId}/preview?autoplay=1`,
+      };
+    }
+  }
+  throw Object.assign(new Error('Only YouTube and Google Drive video links are supported.'), { status: 400 });
+}
+
 adminRouter.get('/dashboard', async (_req, res, next) => {
   try {
     const [slides, segments, news, totalLeads, verifiedLeads] = await Promise.all([
@@ -95,6 +127,7 @@ adminRouter.post('/video', uploadVideoFile.single('video'), async (req, res, nex
           title: String(req.body.title || 'Discover Texmaco').trim(),
           description: String(req.body.description || '').trim(),
           active: req.body.active !== 'false', url: result.secure_url,
+          sourceType: 'upload', externalUrl: '', embedUrl: '',
           cloudinaryPublicId: result.public_id, duration: result.duration || 0,
         } } },
         { upsert: true, new: true, runValidators: true },
@@ -111,17 +144,31 @@ adminRouter.patch('/video', async (req, res, next) => {
     if (req.body.title !== undefined) updates['featuredVideo.title'] = String(req.body.title).trim();
     if (req.body.description !== undefined) updates['featuredVideo.description'] = String(req.body.description).trim();
     if (req.body.active !== undefined) updates['featuredVideo.active'] = Boolean(req.body.active);
-    const settings = await SiteSetting.findOneAndUpdate({ key: 'main' }, { $set: updates }, { new: true, runValidators: true });
-    if (!settings) return res.status(404).json({ message: 'Upload a video first.' });
+    let previousPublicId = '';
+    if (req.body.externalUrl !== undefined) {
+      const normalized = normalizeExternalVideoUrl(req.body.externalUrl);
+      const current = await SiteSetting.findOne({ key: 'main' }).lean();
+      previousPublicId = current?.featuredVideo?.cloudinaryPublicId || '';
+      updates['featuredVideo.sourceType'] = normalized.sourceType;
+      updates['featuredVideo.externalUrl'] = normalized.externalUrl;
+      updates['featuredVideo.embedUrl'] = normalized.embedUrl;
+      updates['featuredVideo.url'] = '';
+      updates['featuredVideo.cloudinaryPublicId'] = '';
+      updates['featuredVideo.duration'] = 0;
+    }
+    const settings = await SiteSetting.findOneAndUpdate(
+      { key: 'main' }, { $set: updates }, { upsert: true, new: true, runValidators: true },
+    );
+    if (previousPublicId) await deleteVideo(previousPublicId);
     res.json(settings.featuredVideo);
   } catch (error) { next(error); }
 });
 adminRouter.delete('/video', async (_req, res, next) => {
   try {
     const settings = await SiteSetting.findOne({ key: 'main' });
-    if (!settings?.featuredVideo?.url) return res.status(404).json({ message: 'No video is configured.' });
+    if (!settings?.featuredVideo?.url && !settings?.featuredVideo?.embedUrl) return res.status(404).json({ message: 'No video is configured.' });
     const publicId = settings.featuredVideo.cloudinaryPublicId;
-    settings.featuredVideo = { title: 'Discover Texmaco', description: '', url: '', cloudinaryPublicId: '', duration: 0, active: false };
+    settings.featuredVideo = { title: 'Discover Texmaco', description: '', url: '', sourceType: 'upload', externalUrl: '', embedUrl: '', cloudinaryPublicId: '', duration: 0, active: false };
     await settings.save();
     await deleteVideo(publicId);
     res.json({ message: 'Featured video removed.' });

@@ -222,7 +222,10 @@ button { color: inherit; }
 .video-modal header button { width: 41px; height: 41px; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: #fff; display: grid; place-items: center; cursor: pointer; }
 .video-modal header button svg { width: 17px; }
 .video-frame { width: 100%; max-height: calc(90vh - 90px); aspect-ratio: 16/9; background: #000; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
-.video-frame video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.video-frame video,.video-frame iframe { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; }
+.video-modal:fullscreen,.video-modal:-webkit-full-screen { padding: 3vh 3vw; }
+.video-modal:fullscreen > section,.video-modal:-webkit-full-screen > section { width: 100%; max-height: 94vh; }
+.video-modal:fullscreen .video-frame,.video-modal:-webkit-full-screen .video-frame { max-height: calc(94vh - 90px); }
 @media(max-width:850px) and (orientation:landscape){.video-invite{right:17px;bottom:108px;height:44px;padding-right:13px}.video-invite-rings{width:32px;height:32px}.video-modal{padding:3vh 4vw}.video-modal header{margin-bottom:7px}.video-modal h2{font-size:18px}.video-modal header p{display:none}.video-frame{max-height:calc(94vh - 55px)}}
 @media(orientation:portrait) and (max-width:700px){.video-invite{right:17px;bottom:137px;width:50px;height:50px;padding:5px}.video-invite-rings{width:39px;height:39px}.video-invite>span:last-child{display:none}.video-modal{padding:20px}.video-modal header{align-items:center}.video-modal h2{font-size:20px}.video-modal header p{display:none}}
 

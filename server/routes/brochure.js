@@ -16,7 +16,7 @@ brochureRouter.get('/', async (_req, res, next) => {
     res.json({
       segments: segments.map(({ _id, slug, label, order }) => ({ id: slug, _id, label, order })),
       slides: slides.map((slide, index) => ({ ...slide, id: slide._id, number: index + 1 })),
-      featuredVideo: settings?.featuredVideo?.active && settings.featuredVideo.url ? settings.featuredVideo : null,
+      featuredVideo: settings?.featuredVideo?.active && (settings.featuredVideo.url || settings.featuredVideo.embedUrl) ? settings.featuredVideo : null,
     });
   } catch (error) { next(error); }
 });

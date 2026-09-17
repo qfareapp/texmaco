@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft,
   ChevronRight, Expand, Eye, EyeOff, Globe2, Mail, Menu, MousePointer2,
@@ -360,6 +361,7 @@ function WhatsAppChat({ slide, segmentLabel }) {
 function FeaturedVideo({ video }) {
   const [open, setOpen] = useState(false);
   const videoRef = useRef(null);
+  const modalRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -368,18 +370,43 @@ function FeaturedVideo({ video }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [open]);
 
-  if (!video?.url || !video.active) return null;
-  const close = () => { videoRef.current?.pause(); setOpen(false); };
+  if ((!video?.url && !video?.embedUrl) || !video.active) return null;
+  const close = () => {
+    videoRef.current?.pause();
+    if ((document.fullscreenElement || document.webkitFullscreenElement) === modalRef.current) {
+      const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+      const exitResult = exitFullscreen?.call(document);
+      exitResult?.catch?.(() => {});
+    }
+    setOpen(false);
+  };
+  const launch = (event) => {
+    event.stopPropagation();
+    flushSync(() => setOpen(true));
+    const modal = modalRef.current;
+    const requestFullscreen = modal?.requestFullscreen || modal?.webkitRequestFullscreen;
+    if (requestFullscreen) {
+      const fullscreenResult = requestFullscreen.call(modal);
+      fullscreenResult?.catch?.(() => {});
+    }
+    window.setTimeout(() => {
+      const playResult = videoRef.current?.play();
+      playResult?.catch?.(() => {});
+    }, 0);
+  };
 
   return <>
-    <button className="video-invite" onClick={(event) => { event.stopPropagation(); setOpen(true); }}>
+    <button className="video-invite" onClick={launch}>
       <span className="video-invite-rings"><i /><i /><Play /></span>
       <span><small>Inside Texmaco</small><strong>Watch Texmaco Video</strong></span>
     </button>
-    {open && <div className="video-modal" onClick={close} role="dialog" aria-modal="true" aria-label={video.title || 'Texmaco video'}>
+    {open && <div ref={modalRef} className="video-modal" onClick={close} role="dialog" aria-modal="true" aria-label={video.title || 'Texmaco video'}>
       <section onClick={(event) => event.stopPropagation()}>
         <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><button onClick={close} aria-label="Close video"><X /></button></header>
-        <div className="video-frame"><video ref={videoRef} src={video.url} controls autoPlay playsInline preload="metadata">Your browser does not support embedded video.</video></div>
+        <div className="video-frame">{video.embedUrl
+          ? <iframe src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
+          : <video ref={videoRef} src={video.url} controls autoPlay playsInline preload="metadata">Your browser does not support embedded video.</video>}
+        </div>
       </section>
     </div>}
   </>;
