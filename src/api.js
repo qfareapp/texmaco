@@ -1,14 +1,23 @@
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_URL}${path}`, options);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.message || 'Request failed.');
-    error.status = response.status;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${API_URL}${path}`, { ...options, signal: options.signal || controller.signal });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data.message || 'Request failed.');
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('The server took too long to respond. Please try again.');
     throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
-  return data;
 }
 
 function uploadRequest(path, body, token, onProgress) {

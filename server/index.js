@@ -11,6 +11,7 @@ import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { brochureRouter } from './routes/brochure.js';
 import { leadsRouter } from './routes/leads.js';
+import { verifyEmailTransport } from './services/email.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -64,7 +65,10 @@ async function start() {
   if (await Segment.countDocuments() === 0) {
     await Segment.insertMany(defaultSegments.map((label, order) => ({ slug: label.toLowerCase(), label, order })));
   }
-  app.listen(config.port, '0.0.0.0', () => console.log(`Texmaco API listening on port ${config.port}`));
+  app.listen(config.port, '0.0.0.0', () => {
+    console.log(`Texmaco API listening on port ${config.port}`);
+    void verifyEmailTransport();
+  });
 }
 
 start().catch((error) => { console.error('Unable to start server:', error); process.exit(1); });
