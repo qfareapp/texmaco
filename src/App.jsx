@@ -362,9 +362,16 @@ function AccessGate({ onClose, onSuccess }) {
   );
 }
 
-function WhatsAppChat({ slide, segmentLabel }) {
+function WhatsAppChat({ slide, segmentLabel, onTypingFocus, onTypingEnd }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [typing, setTyping] = useState(false);
+
+  const closeChat = () => {
+    setOpen(false);
+    setTyping(false);
+    onTypingEnd?.();
+  };
 
   const continueOnWhatsApp = (event) => {
     event.preventDefault();
@@ -386,20 +393,21 @@ function WhatsAppChat({ slide, segmentLabel }) {
   };
 
   return (
-    <div className={`whatsapp-widget ${open ? 'whatsapp-widget--open' : ''}`} onClick={(event) => event.stopPropagation()}>
+    <div className={`whatsapp-widget ${open ? 'whatsapp-widget--open' : ''} ${typing ? 'whatsapp-widget--typing' : ''}`} onClick={(event) => event.stopPropagation()}>
       {open && <section className="whatsapp-card" aria-label="Connect with Texmaco on WhatsApp">
         <header>
           <div className="whatsapp-avatar"><MessageCircle /></div>
           <div><strong>Connect with us</strong><span><i /> Typically replies on WhatsApp</span></div>
-          <button onClick={() => setOpen(false)} aria-label="Close chat"><X /></button>
+          <button onClick={closeChat} aria-label="Close chat"><X /></button>
         </header>
+        {typing && <div className="whatsapp-rotate-message"><RotateCcw /> Rotate your phone upright for easier typing</div>}
         <div className="whatsapp-body">
           <span className="chat-date">Texmaco Rail &amp; Engineering</span>
           <div className="agent-message"><strong>Hello! 👋</strong><p>Have a question about our capabilities? Leave your enquiry below and continue the conversation securely on WhatsApp.</p><time>Now</time></div>
         </div>
         <form onSubmit={continueOnWhatsApp}>
           <label htmlFor="whatsapp-query">Your enquiry</label>
-          <textarea id="whatsapp-query" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type your question here…" rows="3" />
+          <textarea id="whatsapp-query" value={query} onChange={(event) => setQuery(event.target.value)} onFocus={(event) => { setTyping(true); onTypingFocus?.(event.currentTarget); }} placeholder="Type your question here…" rows="3" />
           <button type="submit" disabled={!query.trim()}><Send /> Continue on WhatsApp</button>
           <small>You’ll be redirected to WhatsApp to send this message.</small>
         </form>
@@ -478,6 +486,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
   const [autoplay, setAutoplay] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement || document.webkitFullscreenElement));
   const [chromeVisible, setChromeVisible] = useState(true);
+  const [chatTyping, setChatTyping] = useState(false);
   const touchStart = useRef(null);
   const wheelLock = useRef(false);
   const didSwipe = useRef(false);
@@ -567,6 +576,30 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
     onStopMusic();
     if (isFullscreen) void exitImmersiveFullscreen();
   };
+  const enterChatTypingMode = async (field) => {
+    setChatTyping(true);
+    setChromeVisible(true);
+    if (isFullscreen && screen.orientation?.lock) {
+      try {
+        await screen.orientation.lock('portrait');
+        window.setTimeout(() => field?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 220);
+        return;
+      } catch { /* Fall back to the normal portrait-friendly page. */ }
+    }
+    setPseudoFullscreen(false);
+    await exitImmersiveFullscreen();
+    try { await screen.orientation?.lock?.('portrait'); }
+    catch { /* iPhone Safari requires the visitor to rotate the phone. */ }
+    window.setTimeout(() => field?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 280);
+  };
+  const leaveChatTypingMode = () => {
+    setChatTyping(false);
+    if (isFullscreen && screen.orientation?.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    } else {
+      try { screen.orientation?.unlock?.(); } catch { /* Orientation may not be locked. */ }
+    }
+  };
 
   return (
     <main data-slide={current} className={`brochure ${pseudoFullscreen ? 'brochure--pseudo-fullscreen' : ''} ${immersiveActive && !chromeVisible ? 'brochure--chrome-hidden' : ''}`} onWheel={onWheel} onPointerDown={pointerDown} onPointerUp={pointerUp}>
@@ -604,9 +637,9 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
             const brochureStillImmersive = pseudoFullscreen || document.fullscreenElement || document.webkitFullscreenElement;
             if (brochureStillImmersive && !musicMuted) onStartMusic();
           }} />
-          <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} />
+          <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} onTypingFocus={enterChatTypingMode} onTypingEnd={leaveChatTypingMode} />
         </div>
-        {immersiveActive && <div className="rotate-device-hint" onClick={(event) => event.stopPropagation()}><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span><button onClick={leaveSlideshowFullscreen}><Minimize /> Exit fullscreen</button></div>}
+        {immersiveActive && !chatTyping && <div className="rotate-device-hint" onClick={(event) => event.stopPropagation()}><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span><button onClick={leaveSlideshowFullscreen}><Minimize /> Exit fullscreen</button></div>}
       </section>
       {gateOpen && <AccessGate onClose={() => setGateOpen(false)} onSuccess={() => { setUnlocked(true); setGateOpen(false); setCurrent(LOCKED_FROM); }} />}
     </main>
