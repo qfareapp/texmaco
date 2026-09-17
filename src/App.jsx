@@ -3,14 +3,21 @@ import { flushSync } from 'react-dom';
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft,
   ChevronRight, Expand, Eye, EyeOff, Globe2, Mail, Menu, MousePointer2,
-  MessageCircle, Minimize, Newspaper, Pause, Play, RotateCcw, Send, ShieldCheck,
-  TrainFront, Volume2, VolumeX, X,
+  MessageCircle, Minimize, Newspaper, Pause, Play, Plus, RotateCcw, Send, Share,
+  ShieldCheck, Smartphone, TrainFront, Volume2, VolumeX, X,
 } from 'lucide-react';
 import { publicApi } from './api';
 import { railDomains, segments as defaultSegments, slides as defaultSlides } from './data/slides';
 
 const LOCKED_FROM = 6;
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '919147369654';
+const isStandaloneMode = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIPhoneSafari = () => {
+  const userAgent = window.navigator.userAgent;
+  return /iPhone/.test(userAgent)
+    && /WebKit/.test(userAgent)
+    && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent);
+};
 
 async function enterImmersiveFullscreen() {
   const root = document.documentElement;
@@ -52,6 +59,49 @@ function Brand({ compact = false }) {
       <img className="brand-logo" src="/assets/texmaco-logo.png" alt="Texmaco Rail & Engineering Ltd." draggable="false" />
     </div>
   );
+}
+
+function IPhoneInstallPrompt() {
+  const [visible, setVisible] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isIPhoneSafari() || isStandaloneMode()) return;
+    const reminderKey = 'texmaco-ios-install-reminder-shown';
+    if (sessionStorage.getItem(reminderKey) === 'true') return;
+    sessionStorage.setItem(reminderKey, 'true');
+    setVisible(true);
+  }, []);
+
+  const continueInSafari = () => {
+    setGuideOpen(false);
+    setVisible(false);
+  };
+
+  if (!visible) return null;
+  return <>
+    <button className="ios-install-button" onClick={() => setGuideOpen(true)}>
+      <img src="/assets/texmaco-app-icon-180.png" alt="" />
+      <span><small>Best iPhone experience</small><strong>Install for Full Screen</strong></span>
+      <ChevronRight />
+    </button>
+    {guideOpen && <div className="ios-install-backdrop" role="dialog" aria-modal="true" aria-labelledby="ios-install-title">
+      <section className="ios-install-guide">
+        <button className="ios-install-close" onClick={continueInSafari} aria-label="Close installation guide"><X /></button>
+        <img className="ios-install-logo" src="/assets/texmaco-app-icon-180.png" alt="Texmaco" />
+        <span className="ios-install-kicker">Texmaco on iPhone</span>
+        <h2 id="ios-install-title">Open without Safari bars.</h2>
+        <p>Add this brochure to your Home Screen for the complete fullscreen experience.</p>
+        <ol>
+          <li><i><Share /></i><span><b>1</b><strong>Tap Share</strong><small>Use Safari's Share button in the toolbar.</small></span></li>
+          <li><i><Plus /></i><span><b>2</b><strong>Add to Home Screen</strong><small>Scroll down and select this option.</small></span></li>
+          <li><i><Smartphone /></i><span><b>3</b><strong>Tap Add</strong><small>Then launch Texmaco from the new icon.</small></span></li>
+        </ol>
+        <button className="ios-install-continue" onClick={continueInSafari}>Continue in Safari</button>
+        <small className="ios-install-note">Apple requires these steps to be confirmed manually.</small>
+      </section>
+    </div>}
+  </>;
 }
 
 function Welcome({ onEnter, onStartMusic, onFallbackFullscreen }) {
@@ -419,7 +469,10 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
   const [segments, setSegments] = useState(defaultSegments);
   const [featuredVideo, setFeaturedVideo] = useState(null);
   const [current, setCurrent] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 900);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const shortLandscapePhone = window.innerWidth > window.innerHeight && window.innerHeight <= 600;
+    return window.innerWidth > 900 && !shortLandscapePhone;
+  });
   const [gateOpen, setGateOpen] = useState(false);
   const [unlocked, setUnlocked] = useState(() => Boolean(sessionStorage.getItem('texmaco-brochure-access')));
   const [autoplay, setAutoplay] = useState(false);
@@ -561,6 +614,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
 export default function App() {
   const [entered, setEntered] = useState(false);
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
+  const [showLaunchScreen, setShowLaunchScreen] = useState(() => isStandaloneMode());
   const [musicMuted, setMusicMuted] = useState(() => sessionStorage.getItem('texmaco-music-muted') === 'true');
   const musicRef = useRef(null);
   const startMusic = useCallback(() => {
@@ -587,10 +641,22 @@ export default function App() {
     });
   }, [pseudoFullscreen]);
 
+  useEffect(() => {
+    if (!showLaunchScreen) return undefined;
+    const timer = window.setTimeout(() => setShowLaunchScreen(false), 1450);
+    return () => window.clearTimeout(timer);
+  }, [showLaunchScreen]);
+
   return <>
+    {showLaunchScreen && <div className="app-launch-screen" aria-label="Opening Texmaco">
+      <img src="/assets/texmaco-app-icon-512.png" alt="Texmaco" />
+      <span>Rail &amp; Engineering</span>
+      <i />
+    </div>}
     <audio ref={musicRef} src="/assets/texmaco-background-music.mp3" loop preload="auto" muted={musicMuted} />
     {entered
       ? <Brochure musicMuted={musicMuted} onToggleMusic={toggleMusic} onStartMusic={startMusic} onStopMusic={stopMusic} pseudoFullscreen={pseudoFullscreen} setPseudoFullscreen={setPseudoFullscreen} />
       : <Welcome onEnter={() => setEntered(true)} onStartMusic={startMusic} onFallbackFullscreen={() => setPseudoFullscreen(true)} />}
+    <IPhoneInstallPrompt />
   </>;
 }
