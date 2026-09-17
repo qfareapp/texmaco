@@ -382,3 +382,43 @@ button { color: inherit; }
 }
 .stage--document .news-button{padding:0 14px;background:rgba(172,57,20,.82);border-color:rgba(238,112,59,.62)}
 @media(max-width:850px) and (orientation:landscape){.stage--document .news-button{width:38px;padding:0}}
+
+/* Keep every brochure action reachable on narrow portrait phones. */
+@media (orientation: portrait) and (max-width: 700px) {
+  .stage-header,
+  .brochure--pseudo-fullscreen .stage-header {
+    gap: 7px;
+    padding-left: max(12px,env(safe-area-inset-left));
+    padding-right: max(12px,env(safe-area-inset-right));
+  }
+  .stage-header .chapter-name {
+    min-width: 0;
+    max-width: 92px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header-actions { min-width: 0; margin-left: auto; gap: 6px; flex: 0 0 auto; }
+  .header-actions .quiet-button,
+  .header-actions .news-button,
+  .stage--document .header-actions .news-button,
+  .header-actions .icon-button {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .header-actions .quiet-button { gap: 0; }
+  .header-actions .quiet-button > span,
+  .header-actions .news-button > span,
+  .header-actions .news-button > b { display: none; }
+}
+
+@media (orientation: portrait) and (max-width: 360px) {
+  .stage-header .chapter-name { max-width: 72px; font-size: 8px; letter-spacing: .12em; }
+  .header-actions { gap: 4px; }
+  .header-actions .quiet-button,
+  .header-actions .news-button,
+  .stage--document .header-actions .news-button,
+  .header-actions .icon-button { width: 36px; min-width: 36px; height: 36px; }
+}

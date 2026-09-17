@@ -540,7 +540,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
           {!sidebarOpen && <button className="icon-button floating-menu" onClick={() => setSidebarOpen(true)} aria-label="Show chapters"><Menu /></button>}
           <span className="chapter-name">{segments.find((item) => item.id === slides[current].segment)?.label}</span>
           <div className="header-actions">
-            <button className="quiet-button" onClick={() => setAutoplay((value) => !value)}>{autoplay ? <Pause size={15} /> : <Play size={15} />}{autoplay ? 'Pause' : 'Autoplay'}</button>
+            <button className="quiet-button autoplay-button" onClick={() => setAutoplay((value) => !value)} aria-label={autoplay ? 'Pause autoplay' : 'Start autoplay'}>{autoplay ? <Pause size={15} /> : <Play size={15} />}<span>{autoplay ? 'Pause' : 'Autoplay'}</span></button>
             <button className="quiet-button music-button" onClick={onToggleMusic} aria-label={musicMuted ? 'Unmute background music' : 'Mute background music'}>{musicMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}<span>{musicMuted ? 'Unmute' : 'Mute'}</span></button>
             <button className="news-button" onClick={() => window.location.assign('/news')}><span><i /></span><Newspaper /><b>Recent news</b></button>
             <button
