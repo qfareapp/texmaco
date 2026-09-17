@@ -364,48 +364,9 @@ function WhatsAppChat({ slide, segmentLabel }) {
 
 function FeaturedVideo({ video, onOpen, onClose }) {
   const [open, setOpen] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const [playing, setPlaying] = useState(false);
-  const [videoMuted, setVideoMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const videoRef = useRef(null);
-  const embedRef = useRef(null);
-  const frameRef = useRef(null);
   const modalRef = useRef(null);
 
-  const requestVideoFullscreen = async () => {
-    const nativeVideo = videoRef.current;
-    const player = embedRef.current || frameRef.current;
-    const requestPlayerFullscreen = player?.requestFullscreen || player?.webkitRequestFullscreen;
-
-    if (requestPlayerFullscreen) {
-      try { await requestPlayerFullscreen.call(player); return; }
-      catch { /* Try the iPhone player or modal fallback below. */ }
-    }
-    const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
-      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isAppleMobile && nativeVideo?.webkitEnterFullscreen) {
-      try {
-        // iPhone's native player requires its own controls; Android and desktop
-        // use the custom controls inside the fullscreen frame instead.
-        nativeVideo.controls = true;
-        nativeVideo.webkitEnterFullscreen();
-        return;
-      }
-      catch {
-        nativeVideo.controls = false;
-        /* Continue with the viewport-filling modal fallback. */
-      }
-    }
-
-    const modal = modalRef.current;
-    const requestFullscreen = modal?.requestFullscreen || modal?.webkitRequestFullscreen;
-    if (requestFullscreen && (document.fullscreenElement || document.webkitFullscreenElement) !== modal) {
-      try { await requestFullscreen.call(modal); }
-      catch { /* The viewport-filling overlay remains available as a fallback. */ }
-    }
-  };
   const close = useCallback(async () => {
     videoRef.current?.pause();
     const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
@@ -425,39 +386,15 @@ function FeaturedVideo({ video, onOpen, onClose }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [open, close]);
 
-  useEffect(() => {
-    const player = videoRef.current;
-    if (!open || !player) return undefined;
-    const restoreCustomControls = () => { player.controls = false; setControlsVisible(true); };
-    player.addEventListener('webkitendfullscreen', restoreCustomControls);
-    return () => player.removeEventListener('webkitendfullscreen', restoreCustomControls);
-  }, [open]);
-
   if ((!video?.url && !video?.embedUrl) || !video.active) return null;
   const launch = (event) => {
     event.stopPropagation();
     onOpen?.();
-    setControlsVisible(true);
     flushSync(() => setOpen(true));
     window.setTimeout(() => {
-      if (videoRef.current) videoRef.current.controls = false;
       const playResult = videoRef.current?.play();
       playResult?.catch?.(() => {});
     }, 0);
-  };
-  const togglePlayback = () => {
-    const player = videoRef.current;
-    if (!player) return;
-    if (player.paused) {
-      const playResult = player.play();
-      playResult?.catch?.(() => {});
-    } else player.pause();
-  };
-  const formatVideoTime = (value) => {
-    if (!Number.isFinite(value)) return '0:00';
-    const minutes = Math.floor(value / 60);
-    const seconds = Math.floor(value % 60);
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
   };
 
   return <>
@@ -467,43 +404,10 @@ function FeaturedVideo({ video, onOpen, onClose }) {
     </button>
     {open && <div ref={modalRef} className="video-modal" onClick={() => void close()} role="dialog" aria-modal="true" aria-label={video.title || 'Texmaco video'}>
       <section onClick={(event) => event.stopPropagation()}>
-        <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><div className="video-modal-actions"><button onClick={() => void requestVideoFullscreen()} aria-label="View video fullscreen"><Expand /></button><button onClick={() => void close()} aria-label="Close video"><X /></button></div></header>
-        <div ref={frameRef} className={`video-frame ${video.embedUrl ? '' : 'video-frame--native'}`} onClick={() => { if (!video.embedUrl) setControlsVisible((visible) => !visible); }}>{video.embedUrl
-          ? <iframe ref={embedRef} src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
-          : <><video
-              ref={videoRef}
-              src={video.url}
-              autoPlay
-              playsInline
-              controls={false}
-              preload="metadata"
-              muted={videoMuted}
-              onPlay={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-              onLoadedMetadata={(event) => { event.currentTarget.controls = false; setDuration(event.currentTarget.duration || 0); }}
-              onDurationChange={(event) => setDuration(event.currentTarget.duration || 0)}
-              onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-            >Your browser does not support embedded video.</video>
-            <div className={`custom-video-controls ${controlsVisible ? 'custom-video-controls--visible' : ''}`} onClick={(event) => event.stopPropagation()}>
-              <button onClick={togglePlayback} aria-label={playing ? 'Pause video' : 'Play video'}>{playing ? <Pause /> : <Play />}</button>
-              <span>{formatVideoTime(currentTime)}</span>
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                step="0.1"
-                value={Math.min(currentTime, duration || 0)}
-                onChange={(event) => {
-                  const nextTime = Number(event.target.value);
-                  if (videoRef.current) videoRef.current.currentTime = nextTime;
-                  setCurrentTime(nextTime);
-                }}
-                aria-label="Video progress"
-              />
-              <span>{formatVideoTime(duration)}</span>
-              <button onClick={() => setVideoMuted((muted) => !muted)} aria-label={videoMuted ? 'Unmute video' : 'Mute video'}>{videoMuted ? <VolumeX /> : <Volume2 />}</button>
-              <button onClick={() => void requestVideoFullscreen()} aria-label="View video fullscreen"><Expand /></button>
-            </div></>}
+        <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><div className="video-modal-actions"><button onClick={() => void close()} aria-label="Close video"><X /></button></div></header>
+        <div className="video-frame">{video.embedUrl
+          ? <iframe src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
+          : <video ref={videoRef} src={video.url} controls autoPlay playsInline preload="metadata">Your browser does not support embedded video.</video>}
         </div>
       </section>
     </div>}
