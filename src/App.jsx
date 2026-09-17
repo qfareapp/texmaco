@@ -371,8 +371,27 @@ function FeaturedVideo({ video }) {
   }, [open]);
 
   if ((!video?.url && !video?.embedUrl) || !video.active) return null;
+  const requestVideoFullscreen = async () => {
+    const nativeVideo = videoRef.current;
+    if (!document.fullscreenEnabled && nativeVideo?.webkitEnterFullscreen) {
+      try { nativeVideo.webkitEnterFullscreen(); return; }
+      catch { /* Continue with the fullscreen overlay fallback. */ }
+    }
+
+    const modal = modalRef.current;
+    const requestFullscreen = modal?.requestFullscreen || modal?.webkitRequestFullscreen;
+    if (requestFullscreen && (document.fullscreenElement || document.webkitFullscreenElement) !== modal) {
+      try { await requestFullscreen.call(modal); }
+      catch { /* The viewport-filling overlay remains available as a fallback. */ }
+    }
+    if (screen.orientation?.lock) {
+      try { await screen.orientation.lock('landscape'); }
+      catch { /* iOS and some embedded browsers do not expose orientation lock. */ }
+    }
+  };
   const close = () => {
     videoRef.current?.pause();
+    try { screen.orientation?.unlock?.(); } catch { /* Orientation may not be locked. */ }
     if ((document.fullscreenElement || document.webkitFullscreenElement) === modalRef.current) {
       const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
       const exitResult = exitFullscreen?.call(document);
@@ -383,12 +402,7 @@ function FeaturedVideo({ video }) {
   const launch = (event) => {
     event.stopPropagation();
     flushSync(() => setOpen(true));
-    const modal = modalRef.current;
-    const requestFullscreen = modal?.requestFullscreen || modal?.webkitRequestFullscreen;
-    if (requestFullscreen) {
-      const fullscreenResult = requestFullscreen.call(modal);
-      fullscreenResult?.catch?.(() => {});
-    }
+    void requestVideoFullscreen();
     window.setTimeout(() => {
       const playResult = videoRef.current?.play();
       playResult?.catch?.(() => {});
@@ -402,7 +416,7 @@ function FeaturedVideo({ video }) {
     </button>
     {open && <div ref={modalRef} className="video-modal" onClick={close} role="dialog" aria-modal="true" aria-label={video.title || 'Texmaco video'}>
       <section onClick={(event) => event.stopPropagation()}>
-        <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><button onClick={close} aria-label="Close video"><X /></button></header>
+        <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><div className="video-modal-actions"><button onClick={() => void requestVideoFullscreen()} aria-label="View video fullscreen"><Expand /></button><button onClick={close} aria-label="Close video"><X /></button></div></header>
         <div className="video-frame">{video.embedUrl
           ? <iframe src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
           : <video ref={videoRef} src={video.url} controls autoPlay playsInline preload="metadata">Your browser does not support embedded video.</video>}
@@ -500,7 +514,7 @@ function Brochure() {
   };
 
   return (
-    <main className={`brochure ${isFullscreen && !chromeVisible ? 'brochure--chrome-hidden' : ''}`} onWheel={onWheel} onPointerDown={pointerDown} onPointerUp={pointerUp}>
+    <main data-slide={current} className={`brochure ${isFullscreen && !chromeVisible ? 'brochure--chrome-hidden' : ''}`} onWheel={onWheel} onPointerDown={pointerDown} onPointerUp={pointerUp}>
       <Sidebar current={current} open={sidebarOpen} onToggle={() => setSidebarOpen((value) => !value)} onNavigate={navigate} unlocked={unlocked} slides={slides} segments={segments} />
       <section onClick={toggleChrome} className={`stage ${sidebarOpen && chromeVisible ? 'stage--rail-open' : ''} ${slides[current]?.image ? 'stage--document' : ''}`}>
         {slides.map((slide, index) => <Slide key={slide._id || slide.id} slide={slide} index={index} active={current === index} />)}
