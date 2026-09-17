@@ -268,7 +268,8 @@ button { color: inherit; }
 }
 
 /* Animated featured-video invitation */
-.video-invite { position: absolute; z-index: 19; right: 34px; bottom: 153px; height: 57px; border: 1px solid rgba(255,255,255,.2); border-radius: 31px; padding: 0 18px 0 8px; color: #fff; background: rgba(8,38,40,.9); backdrop-filter: blur(12px); display: flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: 0 12px 35px rgba(0,30,30,.28); transition: transform .25s, opacity .25s, visibility .25s; }
+.floating-actions { position: absolute; z-index: 19; right: 34px; bottom: 91px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.video-invite { position: relative; z-index: 19; height: 57px; border: 1px solid rgba(255,255,255,.2); border-radius: 31px; padding: 0 18px 0 8px; color: #fff; background: rgba(8,38,40,.9); backdrop-filter: blur(12px); display: flex; align-items: center; gap: 10px; cursor: pointer; box-shadow: 0 12px 35px rgba(0,30,30,.28); transition: transform .25s, opacity .25s, visibility .25s; }
 .video-invite:hover { transform: translateY(-3px); background: rgba(12,54,55,.96); }
 .video-invite-rings { position: relative; width: 41px; height: 41px; border-radius: 50%; background: #ed612c; display: grid; place-items: center; flex: 0 0 auto; }
 .video-invite-rings > i { position: absolute; inset: 0; border: 1px solid rgba(238,97,44,.7); border-radius: 50%; animation: videoPulse 2.4s ease-out infinite; }
@@ -293,8 +294,8 @@ button { color: inherit; }
 .video-modal:fullscreen,.video-modal:-webkit-full-screen { padding: 3vh 3vw; }
 .video-modal:fullscreen > section,.video-modal:-webkit-full-screen > section { width: 100%; max-height: 94vh; }
 .video-modal:fullscreen .video-frame,.video-modal:-webkit-full-screen .video-frame { max-height: calc(94vh - 90px); }
-@media(max-width:850px) and (orientation:landscape), (orientation:landscape) and (max-height:600px){.video-invite{right:max(17px,env(safe-area-inset-right));bottom:108px;height:44px;padding-right:13px}.video-invite-rings{width:32px;height:32px}}
-@media(orientation:portrait) and (max-width:700px){.video-invite{right:17px;bottom:137px;width:50px;height:50px;padding:5px}.video-invite-rings{width:39px;height:39px}.video-invite>span:last-child{display:none}}
+@media(max-width:850px) and (orientation:landscape), (orientation:landscape) and (max-height:600px){.video-invite{height:44px;padding-right:13px}.video-invite-rings{width:32px;height:32px}}
+@media(orientation:portrait) and (max-width:700px){.video-invite{width:50px;height:50px;padding:5px}.video-invite-rings{width:39px;height:39px}.video-invite>span:last-child{display:none}}
 @media(max-width:850px), (orientation:landscape) and (max-height:600px){
   .video-modal,.video-modal:fullscreen,.video-modal:-webkit-full-screen{padding:0;display:block;width:100%;height:100%;height:100dvh;background:#010b0c}
   .video-modal>section,.video-modal:fullscreen>section,.video-modal:-webkit-full-screen>section{position:relative;width:100%;height:100%;height:100dvh;max-height:none}
@@ -320,7 +321,7 @@ button { color: inherit; }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important; } }
 
 /* WhatsApp enquiry handoff */
-.whatsapp-widget { position: absolute; z-index: 20; right: 34px; bottom: 91px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; transition: opacity .25s ease, visibility .25s ease, transform .25s ease; user-select: auto; }
+.whatsapp-widget { position: relative; z-index: 20; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; transition: opacity .25s ease, visibility .25s ease, transform .25s ease; user-select: auto; }
 .brochure--chrome-hidden .whatsapp-widget { opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(8px); }
 .whatsapp-fab { height: 50px; min-width: 50px; border: 0; border-radius: 27px; padding: 0 18px; background: #20b866; color: #fff; display: flex; align-items: center; justify-content: center; gap: 9px; cursor: pointer; box-shadow: 0 12px 35px rgba(0,35,20,.3); transition: transform .2s, background .2s; }
 .whatsapp-fab:hover { transform: translateY(-2px); background: #16a95a; }
@@ -354,8 +355,8 @@ button { color: inherit; }
 .whatsapp-card form > button svg { width: 14px; }
 .whatsapp-card form small { display: block; text-align: center; color: #949c99; font-size: 7px; margin-top: 7px; }
 
-@media (max-width: 850px) and (orientation: landscape) {
-  .whatsapp-widget { right: 17px; bottom: 58px; }
+@media (max-width: 850px) and (orientation: landscape), (orientation: landscape) and (max-height: 600px) {
+  .floating-actions { right: max(17px,env(safe-area-inset-right)); bottom: 58px; gap: 8px; }
   .whatsapp-fab { height: 42px; padding: 0 14px; }
   .whatsapp-card { width: 310px; max-height: calc(100vh - 72px); overflow-y: auto; }
   .whatsapp-card > header { height: 58px; }
@@ -365,7 +366,7 @@ button { color: inherit; }
 }
 
 @media (orientation: portrait) and (max-width: 700px) {
-  .whatsapp-widget { right: 17px; bottom: 75px; }
+  .floating-actions { right: 17px; bottom: 75px; gap: 12px; }
   .whatsapp-fab { width: 50px; min-width: 50px; height: 50px; padding: 0; }
   .whatsapp-fab span { display: none; }
   .whatsapp-card { width: min(345px, calc(100vw - 34px)); }

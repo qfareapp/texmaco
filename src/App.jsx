@@ -599,11 +599,13 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
           <button className="round-arrow next" onClick={() => navigate(current + 1)} disabled={current === slides.length - 1} aria-label="Next slide"><ArrowRight /></button>
         </footer>
         <div className="swipe-hint"><ArrowLeft size={14} /> swipe to explore <ArrowRight size={14} /></div>
-        <FeaturedVideo video={featuredVideo} onOpen={onStopMusic} onClose={() => {
-          const brochureStillImmersive = pseudoFullscreen || document.fullscreenElement || document.webkitFullscreenElement;
-          if (brochureStillImmersive && !musicMuted) onStartMusic();
-        }} />
-        <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} />
+        <div className="floating-actions">
+          <FeaturedVideo video={featuredVideo} onOpen={onStopMusic} onClose={() => {
+            const brochureStillImmersive = pseudoFullscreen || document.fullscreenElement || document.webkitFullscreenElement;
+            if (brochureStillImmersive && !musicMuted) onStartMusic();
+          }} />
+          <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} />
+        </div>
         {immersiveActive && <div className="rotate-device-hint" onClick={(event) => event.stopPropagation()}><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span><button onClick={leaveSlideshowFullscreen}><Minimize /> Exit fullscreen</button></div>}
       </section>
       {gateOpen && <AccessGate onClose={() => setGateOpen(false)} onSuccess={() => { setUnlocked(true); setGateOpen(false); setCurrent(LOCKED_FROM); }} />}
