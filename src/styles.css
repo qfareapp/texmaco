@@ -240,6 +240,9 @@ button { color: inherit; }
 .video-frame { position: relative; width: 100%; max-height: calc(90vh - 90px); aspect-ratio: 16/9; background: #000; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
 .video-frame video,.video-frame iframe { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; }
 .video-frame--native { cursor: pointer; }
+.video-frame--native video::-webkit-media-controls,
+.video-frame--native video::-webkit-media-controls-enclosure,
+.video-frame--native video::-webkit-media-controls-panel { display: none !important; }
 .custom-video-controls { position: absolute; z-index: 3; left: 50%; right: auto; bottom: 16px; width: min(920px,calc(100% - 32px)); height: 58px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.17); border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #fff; background: rgba(4,15,17,.76); box-shadow: 0 8px 26px rgba(0,0,0,.28); opacity: 0; visibility: hidden; transform: translate(-50%,8px); transition: opacity .16s ease,visibility .16s ease,transform .16s ease; cursor: default; }
 .custom-video-controls--visible { opacity: 1; visibility: visible; transform: translate(-50%,0); }
 .custom-video-controls button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; color: #fff; background: rgba(255,255,255,.14); cursor: pointer; }

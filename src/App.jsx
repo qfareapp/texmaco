@@ -383,7 +383,9 @@ function FeaturedVideo({ video, onOpen, onClose }) {
       try { await requestPlayerFullscreen.call(player); return; }
       catch { /* Try the iPhone player or modal fallback below. */ }
     }
-    if (nativeVideo?.webkitEnterFullscreen) {
+    const isAppleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isAppleMobile && nativeVideo?.webkitEnterFullscreen) {
       try {
         // iPhone's native player requires its own controls; Android and desktop
         // use the custom controls inside the fullscreen frame instead.
@@ -391,7 +393,10 @@ function FeaturedVideo({ video, onOpen, onClose }) {
         nativeVideo.webkitEnterFullscreen();
         return;
       }
-      catch { /* Continue with the viewport-filling modal fallback. */ }
+      catch {
+        nativeVideo.controls = false;
+        /* Continue with the viewport-filling modal fallback. */
+      }
     }
 
     const modal = modalRef.current;
@@ -435,6 +440,7 @@ function FeaturedVideo({ video, onOpen, onClose }) {
     setControlsVisible(true);
     flushSync(() => setOpen(true));
     window.setTimeout(() => {
+      if (videoRef.current) videoRef.current.controls = false;
       const playResult = videoRef.current?.play();
       playResult?.catch?.(() => {});
     }, 0);
@@ -469,11 +475,12 @@ function FeaturedVideo({ video, onOpen, onClose }) {
               src={video.url}
               autoPlay
               playsInline
+              controls={false}
               preload="metadata"
               muted={videoMuted}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
-              onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+              onLoadedMetadata={(event) => { event.currentTarget.controls = false; setDuration(event.currentTarget.duration || 0); }}
               onDurationChange={(event) => setDuration(event.currentTarget.duration || 0)}
               onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
             >Your browser does not support embedded video.</video>
