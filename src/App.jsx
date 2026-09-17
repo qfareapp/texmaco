@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft,
   ChevronRight, Expand, Eye, EyeOff, Globe2, Mail, Menu, MousePointer2,
-  MessageCircle, Minimize, Pause, Play, RotateCcw, Send, ShieldCheck, TrainFront, X,
+  MessageCircle, Minimize, Newspaper, Pause, Play, RotateCcw, Send, ShieldCheck, TrainFront, X,
 } from 'lucide-react';
 import { publicApi } from './api';
 import { railDomains, segments as defaultSegments, slides as defaultSlides } from './data/slides';
@@ -482,6 +482,7 @@ function Brochure() {
           <span className="chapter-name">{segments.find((item) => item.id === slides[current].segment)?.label}</span>
           <div className="header-actions">
             <button className="quiet-button" onClick={() => setAutoplay((value) => !value)}>{autoplay ? <Pause size={15} /> : <Play size={15} />}{autoplay ? 'Pause' : 'Autoplay'}</button>
+            <button className="news-button" onClick={() => window.location.assign('/news')}><span><i /></span><Newspaper /><b>Recent news</b></button>
             <button
               className="icon-button"
               onClick={isFullscreen ? exitImmersiveFullscreen : enterImmersiveFullscreen}

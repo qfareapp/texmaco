@@ -9,6 +9,7 @@ import { Lead } from '../models/Lead.js';
 import { Segment } from '../models/Segment.js';
 import { Slide } from '../models/Slide.js';
 import { SiteSetting } from '../models/SiteSetting.js';
+import { NewsArticle } from '../models/NewsArticle.js';
 import { deleteImage, deleteVideo, uploadImage, uploadVideo } from '../services/cloudinary.js';
 
 export const adminRouter = express.Router();
@@ -32,10 +33,10 @@ const uploadVideoFile = multer({
 
 adminRouter.get('/dashboard', async (_req, res, next) => {
   try {
-    const [slides, segments, totalLeads, verifiedLeads] = await Promise.all([
-      Slide.countDocuments(), Segment.countDocuments(), Lead.countDocuments(), Lead.countDocuments({ verified: true }),
+    const [slides, segments, news, totalLeads, verifiedLeads] = await Promise.all([
+      Slide.countDocuments(), Segment.countDocuments(), NewsArticle.countDocuments(), Lead.countDocuments(), Lead.countDocuments({ verified: true }),
     ]);
-    res.json({ slides, segments, totalLeads, verifiedLeads });
+    res.json({ slides, segments, news, totalLeads, verifiedLeads });
   } catch (error) { next(error); }
 });
 
@@ -173,6 +174,65 @@ adminRouter.delete('/slides/:id', async (req, res, next) => {
     if (!slide) return res.status(404).json({ message: 'Slide not found.' });
     await deleteImage(slide.cloudinaryPublicId);
     res.json({ message: 'Slide deleted.' });
+  } catch (error) { next(error); }
+});
+
+adminRouter.get('/news', async (_req, res, next) => {
+  try { res.json(await NewsArticle.find().sort({ publishedAt: -1, createdAt: -1 })); }
+  catch (error) { next(error); }
+});
+
+adminRouter.post('/news', upload.single('image'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'Please choose a news image.' });
+    const result = await uploadImage(req.file.buffer, 'texmaco-brochure/news');
+    try {
+      const article = await NewsArticle.create({
+        headline: req.body.headline,
+        gist: req.body.gist,
+        sourceName: req.body.sourceName,
+        sourceUrl: req.body.sourceUrl,
+        publishedAt: req.body.publishedAt,
+        active: req.body.active !== 'false',
+        image: result.secure_url,
+        cloudinaryPublicId: result.public_id,
+      });
+      res.status(201).json(article);
+    } catch (error) { await deleteImage(result.public_id); throw error; }
+  } catch (error) { next(error); }
+});
+
+adminRouter.patch('/news/:id', upload.single('image'), async (req, res, next) => {
+  let uploadedPublicId = '';
+  try {
+    const article = await NewsArticle.findById(req.params.id);
+    if (!article) return res.status(404).json({ message: 'News article not found.' });
+    const previousPublicId = article.cloudinaryPublicId;
+    if (req.file) {
+      const result = await uploadImage(req.file.buffer, 'texmaco-brochure/news');
+      uploadedPublicId = result.public_id;
+      article.image = result.secure_url;
+      article.cloudinaryPublicId = result.public_id;
+    }
+    for (const field of ['headline', 'gist', 'sourceName', 'sourceUrl', 'publishedAt']) {
+      if (req.body[field] !== undefined) article[field] = req.body[field];
+    }
+    if (req.body.active !== undefined) article.active = req.body.active === 'true' || req.body.active === true;
+    await article.save();
+    if (req.file) await deleteImage(previousPublicId);
+    res.json(article);
+  } catch (error) {
+    if (uploadedPublicId) await deleteImage(uploadedPublicId).catch(() => {});
+    next(error);
+  }
+});
+
+adminRouter.delete('/news/:id', async (req, res, next) => {
+  try {
+    const article = await NewsArticle.findByIdAndDelete(req.params.id);
+    if (!article) return res.status(404).json({ message: 'News article not found.' });
+    await deleteImage(article.cloudinaryPublicId);
+    res.json({ message: 'News article deleted.' });
   } catch (error) { next(error); }
 });
 

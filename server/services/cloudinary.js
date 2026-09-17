@@ -9,13 +9,13 @@ cloudinary.config({
   secure: true,
 });
 
-export function uploadImage(buffer) {
+export function uploadImage(buffer, folder = 'texmaco-brochure') {
   if (!config.cloudinary.cloudName || !config.cloudinary.apiKey || !config.cloudinary.apiSecret) {
     throw new Error('Cloudinary credentials are not configured.');
   }
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
-      folder: 'texmaco-brochure', resource_type: 'image',
+      folder, resource_type: 'image',
       transformation: [{ quality: 'auto', fetch_format: 'auto' }],
     }, (error, result) => error ? reject(error) : resolve(result));
     stream.end(buffer);

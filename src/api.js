@@ -33,6 +33,7 @@ function uploadRequest(path, body, token, onProgress) {
 
 export const publicApi = {
   brochure: () => request('/brochure'),
+  news: () => request('/brochure/news'),
   requestOtp: (details) => request('/leads/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(details) }),
   verifyOtp: (email, code) => request('/leads/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code }) }),
 };
@@ -55,6 +56,10 @@ export function createAdminApi(token) {
     uploadVideo: (body, onProgress) => uploadRequest('/admin/video', body, token, onProgress),
     updateVideo: (values) => request('/admin/video', auth({ method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) })),
     deleteVideo: () => request('/admin/video', auth({ method: 'DELETE' })),
+    news: () => request('/admin/news', auth()),
+    createNews: (body) => request('/admin/news', auth({ method: 'POST', body })),
+    updateNews: (id, body) => request(`/admin/news/${id}`, auth({ method: 'PATCH', body })),
+    deleteNews: (id) => request(`/admin/news/${id}`, auth({ method: 'DELETE' })),
     leads: (search = '', page = 1) => request(`/admin/leads?search=${encodeURIComponent(search)}&page=${page}`, auth()),
   };
 }

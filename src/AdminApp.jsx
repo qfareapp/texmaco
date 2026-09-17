@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, ChevronLeft, ChevronRight, Clapperboard, Cloud,
   Eye, EyeOff, FileImage, ImagePlus, LayoutDashboard, LoaderCircle, LogOut,
-  Menu, Pencil, Play, Plus, RefreshCw, Search, Tags, Trash2, Upload, Users, X,
+  Menu, Newspaper, Pencil, Play, Plus, RefreshCw, Search, Tags, Trash2, Upload, Users, X,
 } from 'lucide-react';
 import { createAdminApi, loginAdmin } from './api';
 import './admin.css';
 
 function AdminLogo() {
-  return <div className="admin-logo"><span>T</span><div><strong>TEXMACO</strong><small>Brochure Studio</small></div></div>;
+  return <div className="admin-logo"><img src="/assets/texmaco-logo.png" alt="Texmaco Rail & Engineering Ltd." /></div>;
 }
 
 function Login({ onLogin }) {
@@ -47,6 +47,7 @@ function Sidebar({ page, setPage, onLogout, collapsed, setCollapsed }) {
     { id: 'slides', label: 'Brochure slides', icon: FileImage },
     { id: 'segments', label: 'Navigation tabs', icon: Tags },
     { id: 'video', label: 'Featured video', icon: Clapperboard },
+    { id: 'news', label: 'Recent news', icon: Newspaper },
     { id: 'leads', label: 'Visitor leads', icon: Users },
   ];
   return <aside className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -65,6 +66,7 @@ function Overview({ stats, setPage }) {
   const cards = [
     { value: stats.slides ?? '—', label: 'Brochure slides', detail: 'Published and draft', icon: FileImage, color: 'orange', page: 'slides' },
     { value: stats.segments ?? '—', label: 'Navigation tabs', detail: 'Active chapters', icon: Tags, color: 'blue', page: 'segments' },
+    { value: stats.news ?? '—', label: 'News articles', detail: 'Published and draft', icon: Newspaper, color: 'orange', page: 'news' },
     { value: stats.verifiedLeads ?? '—', label: 'Verified visitors', detail: `${stats.totalLeads || 0} total enquiries`, icon: Users, color: 'green', page: 'leads' },
   ];
   return <div className="overview-page">
@@ -182,6 +184,84 @@ function VideoPage({ video, reload, api }) {
   </div>;
 }
 
+const blankNews = {
+  headline: '', gist: '', sourceName: '', sourceUrl: '',
+  publishedAt: new Date().toISOString().slice(0, 10), active: true, imageFile: null,
+};
+
+function NewsEditor({ article, api, onClose, onSaved }) {
+  const initial = article
+    ? { ...article, publishedAt: new Date(article.publishedAt).toISOString().slice(0, 10), imageFile: null }
+    : blankNews;
+  const [form, setForm] = useState(initial);
+  const [preview, setPreview] = useState(article?.image || '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const change = (event) => setForm((value) => ({
+    ...value,
+    [event.target.name]: event.target.type === 'checkbox' ? event.target.checked : event.target.value,
+  }));
+  const chooseImage = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    setForm((value) => ({ ...value, imageFile: file }));
+    setPreview(URL.createObjectURL(file));
+  };
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!article && !form.imageFile) { setError('Please choose an article image.'); return; }
+    setBusy(true); setError('');
+    const body = new FormData();
+    ['headline', 'gist', 'sourceName', 'sourceUrl', 'publishedAt'].forEach((key) => body.append(key, form[key] || ''));
+    body.append('active', String(form.active));
+    if (form.imageFile) body.append('image', form.imageFile);
+    try {
+      if (article) await api.updateNews(article._id, body);
+      else await api.createNews(body);
+      onSaved();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  };
+
+  return <div className="admin-modal"><div className="editor-panel"><div className="editor-head"><div><span>{article ? 'Edit story' : 'New story'}</span><h2>{article ? 'Update news article' : 'Publish a news article'}</h2></div><button onClick={onClose}><X /></button></div><form onSubmit={submit}>
+    <label className={`image-drop ${preview ? 'has-image' : ''}`}><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={chooseImage} /><div>{preview ? <img src={preview} alt="Article preview" /> : <><Upload /><strong>Choose the article image</strong><span>JPG, PNG, WebP or AVIF · Max 15 MB</span></>}</div>{preview && <span className="replace-label"><Pencil /> Replace image</span>}</label>
+    <div className="editor-fields">
+      <label className="wide"><span>Headline *</span><input name="headline" value={form.headline} onChange={change} maxLength="240" required placeholder="Enter the published headline" /></label>
+      <label><span>Publication/source *</span><input name="sourceName" value={form.sourceName} onChange={change} maxLength="120" required placeholder="e.g. The Economic Times" /></label>
+      <label><span>Published date *</span><input name="publishedAt" type="date" value={form.publishedAt} onChange={change} required /></label>
+      <label className="wide"><span>Original article link *</span><input name="sourceUrl" type="url" value={form.sourceUrl} onChange={change} required placeholder="https://publication.com/article" /></label>
+      <label className="wide"><span>Short gist *</span><textarea name="gist" value={form.gist} onChange={change} maxLength="700" rows="5" required placeholder="Summarise the article in a few concise sentences." /></label>
+      <label className="publish-toggle"><input type="checkbox" name="active" checked={form.active} onChange={change} /><i /><span><strong>Published</strong>Visible in the public newsroom</span></label>
+    </div>
+    {error && <p className="admin-error">{error}</p>}
+    <div className="editor-actions"><button type="button" onClick={onClose}>Cancel</button><button className="admin-primary" disabled={busy}>{busy ? <LoaderCircle className="spin" /> : <><Cloud /> {article ? 'Save article' : 'Publish article'}</>}</button></div>
+  </form></div></div>;
+}
+
+function NewsAdminPage({ articles, reload, api }) {
+  const [editing, setEditing] = useState(undefined);
+  const [confirm, setConfirm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const remove = async () => {
+    setBusy(true);
+    try { await api.deleteNews(confirm._id); setConfirm(null); await reload(); }
+    finally { setBusy(false); }
+  };
+
+  return <div className="news-admin-page">
+    <div className="page-tools"><div><strong>{articles.length} news article{articles.length === 1 ? '' : 's'}</strong><span>Manage newsroom stories and their original sources</span></div><div className="news-admin-tools"><a href="/news" target="_blank" rel="noreferrer">View newsroom <ChevronRight /></a><button className="admin-primary" onClick={() => setEditing(null)}><Plus /> Add article</button></div></div>
+    {!articles.length ? <div className="empty-state"><div><Newspaper /></div><h2>No news articles yet</h2><p>Add recent Texmaco coverage with an image, short gist and link to the original publication.</p><button className="admin-primary" onClick={() => setEditing(null)}><Plus /> Add first article</button></div>
+      : <div className="news-admin-list">{articles.map((article) => <article key={article._id}>
+        <img src={article.image} alt="" />
+        <div className="news-admin-copy"><div><span>{article.sourceName}</span><time>{new Date(article.publishedAt).toLocaleDateString(undefined,{day:'2-digit',month:'short',year:'numeric'})}</time></div><h3>{article.headline}</h3><p>{article.gist}</p><a href={article.sourceUrl} target="_blank" rel="noreferrer">Open original source <ChevronRight /></a></div>
+        <div className={`status-pill ${article.active ? 'live' : 'draft'}`}><i />{article.active ? 'Live' : 'Hidden'}</div>
+        <div className="row-actions"><button onClick={() => setEditing(article)} title="Edit"><Pencil /></button><button className="delete" onClick={() => setConfirm(article)} title="Delete"><Trash2 /></button></div>
+      </article>)}</div>}
+    {editing !== undefined && <NewsEditor article={editing} api={api} onClose={() => setEditing(undefined)} onSaved={async () => { setEditing(undefined); await reload(); }} />}
+    {confirm && <div className="confirm-backdrop"><div className="confirm-box"><div><Trash2 /></div><h3>Delete this article?</h3><p>The story “{confirm.headline}” and its image will be removed from the newsroom and Cloudinary.</p><footer><button onClick={() => setConfirm(null)}>Cancel</button><button onClick={remove} disabled={busy}>Delete permanently</button></footer></div></div>}
+  </div>;
+}
+
 function LeadsPage({ api }) {
   const [data,setData]=useState({items:[],total:0,page:1,pages:1});const[search,setSearch]=useState('');const[query,setQuery]=useState('');const[busy,setBusy]=useState(true);
   const load=useCallback(async(page=1)=>{setBusy(true);try{setData(await api.leads(query,page));}finally{setBusy(false)}},[api,query]);
@@ -190,10 +270,42 @@ function LeadsPage({ api }) {
 }
 
 function Dashboard({ token, onLogout }) {
-  const api=useMemo(()=>createAdminApi(token),[token]);const[page,setPage]=useState('overview');const[stats,setStats]=useState({});const[slides,setSlides]=useState([]);const[segments,setSegments]=useState([]);const[video,setVideo]=useState(null);const[refreshing,setRefreshing]=useState(false);const[collapsed,setCollapsed]=useState(false);
-  const load=useCallback(async()=>{setRefreshing(true);try{const[s,g,d,v]=await Promise.all([api.slides(),api.segments(),api.dashboard(),api.video()]);setSlides(s);setSegments(g);setStats(d);setVideo(v);}catch(e){if(e.status===401)onLogout();}finally{setRefreshing(false)}},[api,onLogout]);useEffect(()=>{load()},[load]);
-  const pages={overview:['Studio overview','Everything you need to manage the brochure experience.'],slides:['Brochure slides','Upload, arrange and publish your brochure images.'],segments:['Navigation tabs','Control the chapter names shown to every visitor.'],video:['Featured video','Upload and control the corporate video invitation.'],leads:['Visitor leads','Verified people who unlocked the complete brochure.']};
-  return <main className="admin-shell"><Sidebar page={page} setPage={setPage} onLogout={onLogout} collapsed={collapsed} setCollapsed={setCollapsed}/><section className={`admin-main ${collapsed?'wide':''}`}><Header title={pages[page][0]} subtitle={pages[page][1]} onRefresh={load} refreshing={refreshing}/><div className="admin-content">{page==='overview'&&<Overview stats={stats} setPage={setPage}/>} {page==='slides'&&<SlidesPage slides={slides} segments={segments} reload={load} api={api} onManageTabs={() => setPage('segments')}/>} {page==='segments'&&<SegmentsPage segments={segments} reload={load} api={api}/>} {page==='video'&&<VideoPage video={video} reload={load} api={api}/>} {page==='leads'&&<LeadsPage api={api}/>}</div></section></main>;
+  const api = useMemo(() => createAdminApi(token), [token]);
+  const [page, setPage] = useState('overview');
+  const [stats, setStats] = useState({});
+  const [slides, setSlides] = useState([]);
+  const [segments, setSegments] = useState([]);
+  const [video, setVideo] = useState(null);
+  const [news, setNews] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const load = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [slideData, segmentData, dashboardData, videoData, newsData] = await Promise.all([
+        api.slides(), api.segments(), api.dashboard(), api.video(), api.news(),
+      ]);
+      setSlides(slideData); setSegments(segmentData); setStats(dashboardData); setVideo(videoData); setNews(newsData);
+    } catch (error) { if (error.status === 401) onLogout(); }
+    finally { setRefreshing(false); }
+  }, [api, onLogout]);
+  useEffect(() => { load(); }, [load]);
+  const pages = {
+    overview: ['Studio overview', 'Everything you need to manage the brochure experience.'],
+    slides: ['Brochure slides', 'Upload, arrange and publish your brochure images.'],
+    segments: ['Navigation tabs', 'Control the chapter names shown to every visitor.'],
+    video: ['Featured video', 'Upload and control the corporate video invitation.'],
+    news: ['Recent news', 'Publish coverage and connect visitors to the original news source.'],
+    leads: ['Visitor leads', 'Verified people who unlocked the complete brochure.'],
+  };
+  return <main className="admin-shell"><Sidebar page={page} setPage={setPage} onLogout={onLogout} collapsed={collapsed} setCollapsed={setCollapsed}/><section className={`admin-main ${collapsed ? 'wide' : ''}`}><Header title={pages[page][0]} subtitle={pages[page][1]} onRefresh={load} refreshing={refreshing}/><div className="admin-content">
+    {page === 'overview' && <Overview stats={stats} setPage={setPage} />}
+    {page === 'slides' && <SlidesPage slides={slides} segments={segments} reload={load} api={api} onManageTabs={() => setPage('segments')} />}
+    {page === 'segments' && <SegmentsPage segments={segments} reload={load} api={api} />}
+    {page === 'video' && <VideoPage video={video} reload={load} api={api} />}
+    {page === 'news' && <NewsAdminPage articles={news} reload={load} api={api} />}
+    {page === 'leads' && <LeadsPage api={api} />}
+  </div></section></main>;
 }
 
 export default function AdminApp(){const[token,setToken]=useState(()=>sessionStorage.getItem('texmaco-admin-token'));const logout=useCallback(()=>{sessionStorage.removeItem('texmaco-admin-token');setToken('')},[]);if(!token)return <Login onLogin={(value)=>{sessionStorage.setItem('texmaco-admin-token',value);setToken(value)}}/>;return <Dashboard token={token} onLogout={logout}/>}
