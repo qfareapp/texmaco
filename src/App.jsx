@@ -365,13 +365,21 @@ function WhatsAppChat({ slide, segmentLabel }) {
 function FeaturedVideo({ video, onOpen, onClose }) {
   const [open, setOpen] = useState(false);
   const videoRef = useRef(null);
+  const embedRef = useRef(null);
   const modalRef = useRef(null);
 
   const requestVideoFullscreen = async () => {
     const nativeVideo = videoRef.current;
-    if (!document.fullscreenEnabled && nativeVideo?.webkitEnterFullscreen) {
+    const player = nativeVideo || embedRef.current;
+    const requestPlayerFullscreen = player?.requestFullscreen || player?.webkitRequestFullscreen;
+
+    if (requestPlayerFullscreen) {
+      try { await requestPlayerFullscreen.call(player); return; }
+      catch { /* Try the iPhone player or modal fallback below. */ }
+    }
+    if (nativeVideo?.webkitEnterFullscreen) {
       try { nativeVideo.webkitEnterFullscreen(); return; }
-      catch { /* Continue with the fullscreen overlay fallback. */ }
+      catch { /* Continue with the viewport-filling modal fallback. */ }
     }
 
     const modal = modalRef.current;
@@ -380,15 +388,11 @@ function FeaturedVideo({ video, onOpen, onClose }) {
       try { await requestFullscreen.call(modal); }
       catch { /* The viewport-filling overlay remains available as a fallback. */ }
     }
-    if (screen.orientation?.lock) {
-      try { await screen.orientation.lock('landscape'); }
-      catch { /* iOS and some embedded browsers do not expose orientation lock. */ }
-    }
   };
   const close = useCallback(async () => {
     videoRef.current?.pause();
-    try { screen.orientation?.unlock?.(); } catch { /* Orientation may not be locked. */ }
-    if ((document.fullscreenElement || document.webkitFullscreenElement) === modalRef.current) {
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fullscreenElement && modalRef.current?.contains(fullscreenElement)) {
       const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
       try { await exitFullscreen?.call(document); }
       catch { /* The overlay can still be closed if fullscreen exit is rejected. */ }
@@ -409,7 +413,6 @@ function FeaturedVideo({ video, onOpen, onClose }) {
     event.stopPropagation();
     onOpen?.();
     flushSync(() => setOpen(true));
-    void requestVideoFullscreen();
     window.setTimeout(() => {
       const playResult = videoRef.current?.play();
       playResult?.catch?.(() => {});
@@ -425,7 +428,7 @@ function FeaturedVideo({ video, onOpen, onClose }) {
       <section onClick={(event) => event.stopPropagation()}>
         <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><div className="video-modal-actions"><button onClick={() => void requestVideoFullscreen()} aria-label="View video fullscreen"><Expand /></button><button onClick={() => void close()} aria-label="Close video"><X /></button></div></header>
         <div className="video-frame">{video.embedUrl
-          ? <iframe src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
+          ? <iframe ref={embedRef} src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
           : <video ref={videoRef} src={video.url} controls autoPlay playsInline preload="metadata">Your browser does not support embedded video.</video>}
         </div>
       </section>
