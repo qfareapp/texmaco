@@ -3,7 +3,8 @@ import { flushSync } from 'react-dom';
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft,
   ChevronRight, Expand, Eye, EyeOff, Globe2, Mail, Menu, MousePointer2,
-  MessageCircle, Minimize, Newspaper, Pause, Play, RotateCcw, Send, ShieldCheck, TrainFront, X,
+  MessageCircle, Minimize, Newspaper, Pause, Play, RotateCcw, Send, ShieldCheck,
+  TrainFront, Volume2, VolumeX, X,
 } from 'lucide-react';
 import { publicApi } from './api';
 import { railDomains, segments as defaultSegments, slides as defaultSlides } from './data/slides';
@@ -51,7 +52,7 @@ function Brand({ compact = false }) {
   );
 }
 
-function Welcome({ onEnter }) {
+function Welcome({ onEnter, onStartMusic }) {
   const [starting, setStarting] = useState(false);
 
   const enter = (fullscreen) => {
@@ -62,6 +63,7 @@ function Welcome({ onEnter }) {
       // brochure on that browser-controlled promise or the faded welcome
       // screen can remain visible as a blank page.
       void enterImmersiveFullscreen();
+      onStartMusic();
     }
     window.setTimeout(onEnter, 260);
   };
@@ -426,7 +428,7 @@ function FeaturedVideo({ video }) {
   </>;
 }
 
-function Brochure() {
+function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
   const [slides, setSlides] = useState(defaultSlides);
   const [segments, setSegments] = useState(defaultSegments);
   const [featuredVideo, setFeaturedVideo] = useState(null);
@@ -455,7 +457,7 @@ function Brochure() {
     const updateFullscreen = () => {
       const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
       setIsFullscreen(active);
-      if (!active) setChromeVisible(true);
+      if (!active) { setChromeVisible(true); onStopMusic(); }
     };
     document.addEventListener('fullscreenchange', updateFullscreen);
     document.addEventListener('webkitfullscreenchange', updateFullscreen);
@@ -463,7 +465,7 @@ function Brochure() {
       document.removeEventListener('fullscreenchange', updateFullscreen);
       document.removeEventListener('webkitfullscreenchange', updateFullscreen);
     };
-  }, []);
+  }, [onStopMusic]);
 
   const navigate = useCallback((target) => {
     const next = Math.max(0, Math.min(slides.length - 1, target));
@@ -523,10 +525,14 @@ function Brochure() {
           <span className="chapter-name">{segments.find((item) => item.id === slides[current].segment)?.label}</span>
           <div className="header-actions">
             <button className="quiet-button" onClick={() => setAutoplay((value) => !value)}>{autoplay ? <Pause size={15} /> : <Play size={15} />}{autoplay ? 'Pause' : 'Autoplay'}</button>
+            <button className="quiet-button music-button" onClick={onToggleMusic} aria-label={musicMuted ? 'Unmute background music' : 'Mute background music'}>{musicMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}<span>{musicMuted ? 'Unmute' : 'Mute'}</span></button>
             <button className="news-button" onClick={() => window.location.assign('/news')}><span><i /></span><Newspaper /><b>Recent news</b></button>
             <button
               className="icon-button"
-              onClick={isFullscreen ? exitImmersiveFullscreen : enterImmersiveFullscreen}
+              onClick={() => {
+                if (isFullscreen) void exitImmersiveFullscreen();
+                else { void enterImmersiveFullscreen(); onStartMusic(); }
+              }}
               aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen landscape'}
             >
               {isFullscreen ? <Minimize /> : <Expand />}
@@ -554,5 +560,36 @@ function Brochure() {
 
 export default function App() {
   const [entered, setEntered] = useState(false);
-  return entered ? <Brochure /> : <Welcome onEnter={() => setEntered(true)} />;
+  const [musicMuted, setMusicMuted] = useState(() => sessionStorage.getItem('texmaco-music-muted') === 'true');
+  const musicRef = useRef(null);
+  const startMusic = useCallback(() => {
+    const audio = musicRef.current;
+    if (!audio) return;
+    audio.volume = .28;
+    audio.muted = musicMuted;
+    const playResult = audio.play();
+    playResult?.catch?.(() => { /* The next direct tap can retry playback. */ });
+  }, [musicMuted]);
+  const stopMusic = useCallback(() => { musicRef.current?.pause(); }, []);
+  const toggleMusic = useCallback(() => {
+    setMusicMuted((value) => {
+      const next = !value;
+      sessionStorage.setItem('texmaco-music-muted', String(next));
+      if (musicRef.current) {
+        musicRef.current.muted = next;
+        if (!next && (document.fullscreenElement || document.webkitFullscreenElement)) {
+          const playResult = musicRef.current.play();
+          playResult?.catch?.(() => {});
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  return <>
+    <audio ref={musicRef} src="/assets/texmaco-background-music.mp3" loop preload="auto" muted={musicMuted} />
+    {entered
+      ? <Brochure musicMuted={musicMuted} onToggleMusic={toggleMusic} onStartMusic={startMusic} onStopMusic={stopMusic} />
+      : <Welcome onEnter={() => setEntered(true)} onStartMusic={startMusic} />}
+  </>;
 }

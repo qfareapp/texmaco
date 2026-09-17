@@ -128,6 +128,7 @@ button { color: inherit; }
 .stage-header { position: absolute; left: 0; right: 0; top: 0; padding: 27px 38px; z-index: 6; display: flex; align-items: center; justify-content: space-between; }
 .chapter-name { font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.44); }
 .header-actions { display: flex; gap: 10px; }.quiet-button { border: 1px solid rgba(255,255,255,.15); height: 38px; padding: 0 15px; background: rgba(0,0,0,.15); display: flex; gap: 8px; align-items: center; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }.floating-menu { margin-right: auto; margin-left: 0; }.floating-menu + .chapter-name { margin-left: 18px; margin-right: auto; }
+.music-button svg { color: #f19a72; }
 .news-button { position: relative; height: 38px; padding: 0 14px; border: 1px solid rgba(238,112,59,.55); background: rgba(172,57,20,.78); color: #fff; display: flex; align-items: center; gap: 8px; font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; overflow: hidden; box-shadow: 0 0 0 0 rgba(232,93,39,.32); animation: newsButtonGlow 2.4s ease-in-out infinite; }
 .news-button::before { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg,transparent 22%,rgba(255,255,255,.2) 46%,transparent 68%); transform: translateX(-130%); animation: newsButtonSweep 3.2s ease-in-out infinite; }
 .news-button > * { position: relative; z-index: 1; }
@@ -372,7 +373,7 @@ button { color: inherit; }
 }
 
 @media(max-width:850px) and (orientation:landscape){
-  .news-button,.stage--document .news-button{width:38px;padding:0;justify-content:center}.news-button>b,.news-button>span{display:none}
+  .news-button,.stage--document .news-button,.music-button{width:38px;padding:0;justify-content:center}.news-button>b,.news-button>span,.music-button>span{display:none}
 }
 .stage--document .news-button{padding:0 14px;background:rgba(172,57,20,.82);border-color:rgba(238,112,59,.62)}
 @media(max-width:850px) and (orientation:landscape){.stage--document .news-button{width:38px;padding:0}}
