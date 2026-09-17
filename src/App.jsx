@@ -14,18 +14,20 @@ const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '919147369654';
 
 async function enterImmersiveFullscreen() {
   const root = document.documentElement;
-  const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  let fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
   const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
   try {
     if (!fullscreenElement && requestFullscreen) await requestFullscreen.call(root);
   } catch {
     return false;
   }
+  fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!fullscreenElement) return false;
   if (screen.orientation?.lock) {
-    try { await screen.orientation.lock('landscape'); return true; }
+    try { await screen.orientation.lock('landscape'); }
     catch { /* Some mobile browsers require the user to rotate the device. */ }
   }
-  return window.matchMedia('(orientation: landscape)').matches;
+  return true;
 }
 
 async function exitImmersiveFullscreen() {
@@ -52,7 +54,7 @@ function Brand({ compact = false }) {
   );
 }
 
-function Welcome({ onEnter, onStartMusic }) {
+function Welcome({ onEnter, onStartMusic, onFallbackFullscreen }) {
   const [starting, setStarting] = useState(false);
 
   const enter = (fullscreen) => {
@@ -62,7 +64,7 @@ function Welcome({ onEnter, onStartMusic }) {
       // fullscreen transition is in progress. Do not delay mounting the
       // brochure on that browser-controlled promise or the faded welcome
       // screen can remain visible as a blank page.
-      void enterImmersiveFullscreen();
+      void enterImmersiveFullscreen().then((active) => { if (!active) onFallbackFullscreen(); });
       onStartMusic();
     }
     window.setTimeout(onEnter, 260);
@@ -428,7 +430,7 @@ function FeaturedVideo({ video }) {
   </>;
 }
 
-function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
+function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudoFullscreen, setPseudoFullscreen }) {
   const [slides, setSlides] = useState(defaultSlides);
   const [segments, setSegments] = useState(defaultSegments);
   const [featuredVideo, setFeaturedVideo] = useState(null);
@@ -442,6 +444,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
   const touchStart = useRef(null);
   const wheelLock = useRef(false);
   const didSwipe = useRef(false);
+  const immersiveActive = isFullscreen || pseudoFullscreen;
 
   useEffect(() => {
     publicApi.brochure().then((data) => {
@@ -509,14 +512,27 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
   };
 
   const toggleChrome = (event) => {
-    if (!isFullscreen || gateOpen) return;
+    if (!immersiveActive || gateOpen) return;
     if (didSwipe.current) { didSwipe.current = false; return; }
     if (event.target.closest('button, a, input, select, textarea, label, aside')) return;
     setChromeVisible((value) => !value);
   };
 
+  const enterSlideshowFullscreen = () => {
+    onStartMusic();
+    void enterImmersiveFullscreen().then((active) => {
+      if (!active) setPseudoFullscreen(true);
+    });
+  };
+  const leaveSlideshowFullscreen = () => {
+    setPseudoFullscreen(false);
+    setChromeVisible(true);
+    onStopMusic();
+    if (isFullscreen) void exitImmersiveFullscreen();
+  };
+
   return (
-    <main data-slide={current} className={`brochure ${isFullscreen && !chromeVisible ? 'brochure--chrome-hidden' : ''}`} onWheel={onWheel} onPointerDown={pointerDown} onPointerUp={pointerUp}>
+    <main data-slide={current} className={`brochure ${pseudoFullscreen ? 'brochure--pseudo-fullscreen' : ''} ${immersiveActive && !chromeVisible ? 'brochure--chrome-hidden' : ''}`} onWheel={onWheel} onPointerDown={pointerDown} onPointerUp={pointerUp}>
       <Sidebar current={current} open={sidebarOpen} onToggle={() => setSidebarOpen((value) => !value)} onNavigate={navigate} unlocked={unlocked} slides={slides} segments={segments} />
       <section onClick={toggleChrome} className={`stage ${sidebarOpen && chromeVisible ? 'stage--rail-open' : ''} ${slides[current]?.image ? 'stage--document' : ''}`}>
         {slides.map((slide, index) => <Slide key={slide._id || slide.id} slide={slide} index={index} active={current === index} />)}
@@ -529,13 +545,10 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
             <button className="news-button" onClick={() => window.location.assign('/news')}><span><i /></span><Newspaper /><b>Recent news</b></button>
             <button
               className="icon-button"
-              onClick={() => {
-                if (isFullscreen) void exitImmersiveFullscreen();
-                else { void enterImmersiveFullscreen(); onStartMusic(); }
-              }}
-              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen landscape'}
+              onClick={immersiveActive ? leaveSlideshowFullscreen : enterSlideshowFullscreen}
+              aria-label={immersiveActive ? 'Exit fullscreen' : 'Fullscreen landscape'}
             >
-              {isFullscreen ? <Minimize /> : <Expand />}
+              {immersiveActive ? <Minimize /> : <Expand />}
             </button>
           </div>
         </header>
@@ -551,7 +564,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
         <div className="swipe-hint"><ArrowLeft size={14} /> swipe to explore <ArrowRight size={14} /></div>
         <FeaturedVideo video={featuredVideo} />
         <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} />
-        {isFullscreen && <div className="rotate-device-hint"><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span></div>}
+        {immersiveActive && <div className="rotate-device-hint" onClick={(event) => event.stopPropagation()}><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span><button onClick={leaveSlideshowFullscreen}><Minimize /> Exit fullscreen</button></div>}
       </section>
       {gateOpen && <AccessGate onClose={() => setGateOpen(false)} onSuccess={() => { setUnlocked(true); setGateOpen(false); setCurrent(LOCKED_FROM); }} />}
     </main>
@@ -560,6 +573,7 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic }) {
 
 export default function App() {
   const [entered, setEntered] = useState(false);
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
   const [musicMuted, setMusicMuted] = useState(() => sessionStorage.getItem('texmaco-music-muted') === 'true');
   const musicRef = useRef(null);
   const startMusic = useCallback(() => {
@@ -577,19 +591,19 @@ export default function App() {
       sessionStorage.setItem('texmaco-music-muted', String(next));
       if (musicRef.current) {
         musicRef.current.muted = next;
-        if (!next && (document.fullscreenElement || document.webkitFullscreenElement)) {
+        if (!next && (pseudoFullscreen || document.fullscreenElement || document.webkitFullscreenElement)) {
           const playResult = musicRef.current.play();
           playResult?.catch?.(() => {});
         }
       }
       return next;
     });
-  }, []);
+  }, [pseudoFullscreen]);
 
   return <>
     <audio ref={musicRef} src="/assets/texmaco-background-music.mp3" loop preload="auto" muted={musicMuted} />
     {entered
-      ? <Brochure musicMuted={musicMuted} onToggleMusic={toggleMusic} onStartMusic={startMusic} onStopMusic={stopMusic} />
-      : <Welcome onEnter={() => setEntered(true)} onStartMusic={startMusic} />}
+      ? <Brochure musicMuted={musicMuted} onToggleMusic={toggleMusic} onStartMusic={startMusic} onStopMusic={stopMusic} pseudoFullscreen={pseudoFullscreen} setPseudoFullscreen={setPseudoFullscreen} />
+      : <Welcome onEnter={() => setEntered(true)} onStartMusic={startMusic} onFallbackFullscreen={() => setPseudoFullscreen(true)} />}
   </>;
 }

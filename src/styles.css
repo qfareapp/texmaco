@@ -72,6 +72,9 @@ button { color: inherit; }
 
 /* Brochure frame */
 .brochure { width: 100%; height: 100%; background: #071416; user-select: none; }
+.brochure--pseudo-fullscreen { position: fixed; z-index: 400; inset: 0; width: 100vw; height: 100%; height: 100dvh; background: #071416; }
+.brochure--pseudo-fullscreen .stage-header { padding-top: max(15px,env(safe-area-inset-top)); padding-right: max(20px,env(safe-area-inset-right)); }
+.brochure--pseudo-fullscreen .stage-footer { padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
 .sidebar { z-index: 30; position: fixed; left: 0; top: 0; bottom: 0; width: 82px; background: rgba(5,20,20,.96); border-right: 1px solid rgba(255,255,255,.1); transition: width .45s cubic-bezier(.7,0,.2,1); display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(18px); }
 .sidebar--open { width: 235px; }
 .sidebar-top { min-height: 105px; padding: 30px 22px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
@@ -258,6 +261,8 @@ button { color: inherit; }
   .rotate-device-hint svg { width: 38px; height: 38px; color: #ed6b36; margin-bottom: 18px; animation: rotateHint 1.8s ease-in-out infinite; }
   .rotate-device-hint strong { font: 500 22px 'Manrope'; }
   .rotate-device-hint span { max-width: 260px; color: rgba(255,255,255,.55); font-size: 10px; line-height: 1.6; margin-top: 7px; }
+  .rotate-device-hint button { height: 42px; margin-top: 24px; padding: 0 17px; border: 1px solid rgba(255,255,255,.24); background: rgba(255,255,255,.08); color: #fff; display: flex; align-items: center; gap: 8px; font-size: 9px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+  .rotate-device-hint button svg { width: 15px; height: 15px; margin: 0; animation: none; color: currentColor; }
 }
 @keyframes rotateHint { 0%,100% { transform: rotate(0); } 50% { transform: rotate(90deg); } }
 
