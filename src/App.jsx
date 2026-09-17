@@ -362,19 +362,11 @@ function WhatsAppChat({ slide, segmentLabel }) {
   );
 }
 
-function FeaturedVideo({ video }) {
+function FeaturedVideo({ video, onOpen, onClose }) {
   const [open, setOpen] = useState(false);
   const videoRef = useRef(null);
   const modalRef = useRef(null);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const closeOnEscape = (event) => { if (event.key === 'Escape') setOpen(false); };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [open]);
-
-  if ((!video?.url && !video?.embedUrl) || !video.active) return null;
   const requestVideoFullscreen = async () => {
     const nativeVideo = videoRef.current;
     if (!document.fullscreenEnabled && nativeVideo?.webkitEnterFullscreen) {
@@ -393,18 +385,29 @@ function FeaturedVideo({ video }) {
       catch { /* iOS and some embedded browsers do not expose orientation lock. */ }
     }
   };
-  const close = () => {
+  const close = useCallback(async () => {
     videoRef.current?.pause();
     try { screen.orientation?.unlock?.(); } catch { /* Orientation may not be locked. */ }
     if ((document.fullscreenElement || document.webkitFullscreenElement) === modalRef.current) {
       const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
-      const exitResult = exitFullscreen?.call(document);
-      exitResult?.catch?.(() => {});
+      try { await exitFullscreen?.call(document); }
+      catch { /* The overlay can still be closed if fullscreen exit is rejected. */ }
     }
     setOpen(false);
-  };
+    onClose?.();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnEscape = (event) => { if (event.key === 'Escape') void close(); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [open, close]);
+
+  if ((!video?.url && !video?.embedUrl) || !video.active) return null;
   const launch = (event) => {
     event.stopPropagation();
+    onOpen?.();
     flushSync(() => setOpen(true));
     void requestVideoFullscreen();
     window.setTimeout(() => {
@@ -418,9 +421,9 @@ function FeaturedVideo({ video }) {
       <span className="video-invite-rings"><i /><i /><Play /></span>
       <span><small>Inside Texmaco</small><strong>Watch Texmaco Video</strong></span>
     </button>
-    {open && <div ref={modalRef} className="video-modal" onClick={close} role="dialog" aria-modal="true" aria-label={video.title || 'Texmaco video'}>
+    {open && <div ref={modalRef} className="video-modal" onClick={() => void close()} role="dialog" aria-modal="true" aria-label={video.title || 'Texmaco video'}>
       <section onClick={(event) => event.stopPropagation()}>
-        <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><div className="video-modal-actions"><button onClick={() => void requestVideoFullscreen()} aria-label="View video fullscreen"><Expand /></button><button onClick={close} aria-label="Close video"><X /></button></div></header>
+        <header><div><span>Featured film</span><h2>{video.title || 'Discover Texmaco'}</h2>{video.description && <p>{video.description}</p>}</div><div className="video-modal-actions"><button onClick={() => void requestVideoFullscreen()} aria-label="View video fullscreen"><Expand /></button><button onClick={() => void close()} aria-label="Close video"><X /></button></div></header>
         <div className="video-frame">{video.embedUrl
           ? <iframe src={video.embedUrl} title={video.title || 'Texmaco video'} allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
           : <video ref={videoRef} src={video.url} controls autoPlay playsInline preload="metadata">Your browser does not support embedded video.</video>}
@@ -562,7 +565,10 @@ function Brochure({ musicMuted, onToggleMusic, onStartMusic, onStopMusic, pseudo
           <button className="round-arrow next" onClick={() => navigate(current + 1)} disabled={current === slides.length - 1} aria-label="Next slide"><ArrowRight /></button>
         </footer>
         <div className="swipe-hint"><ArrowLeft size={14} /> swipe to explore <ArrowRight size={14} /></div>
-        <FeaturedVideo video={featuredVideo} />
+        <FeaturedVideo video={featuredVideo} onOpen={onStopMusic} onClose={() => {
+          const brochureStillImmersive = pseudoFullscreen || document.fullscreenElement || document.webkitFullscreenElement;
+          if (brochureStillImmersive && !musicMuted) onStartMusic();
+        }} />
         <WhatsAppChat slide={slides[current]} segmentLabel={segments.find((item) => item.id === slides[current].segment)?.label} />
         {immersiveActive && <div className="rotate-device-hint" onClick={(event) => event.stopPropagation()}><RotateCcw /><strong>Rotate your phone</strong><span>Landscape gives you the complete brochure view.</span><button onClick={leaveSlideshowFullscreen}><Minimize /> Exit fullscreen</button></div>}
       </section>
