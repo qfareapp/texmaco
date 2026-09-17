@@ -240,8 +240,8 @@ button { color: inherit; }
 .video-frame { position: relative; width: 100%; max-height: calc(90vh - 90px); aspect-ratio: 16/9; background: #000; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
 .video-frame video,.video-frame iframe { display: block; width: 100%; height: 100%; border: 0; object-fit: contain; }
 .video-frame--native { cursor: pointer; }
-.custom-video-controls { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; min-height: 70px; padding: 25px 22px 14px; display: flex; align-items: center; gap: 12px; color: #fff; background: linear-gradient(transparent,rgba(0,0,0,.88)); opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .16s ease,visibility .16s ease,transform .16s ease; cursor: default; }
-.custom-video-controls--visible { opacity: 1; visibility: visible; transform: none; }
+.custom-video-controls { position: absolute; z-index: 3; left: 50%; right: auto; bottom: 16px; width: min(920px,calc(100% - 32px)); height: 58px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.17); border-radius: 12px; display: flex; align-items: center; gap: 12px; color: #fff; background: rgba(4,15,17,.76); box-shadow: 0 8px 26px rgba(0,0,0,.28); opacity: 0; visibility: hidden; transform: translate(-50%,8px); transition: opacity .16s ease,visibility .16s ease,transform .16s ease; cursor: default; }
+.custom-video-controls--visible { opacity: 1; visibility: visible; transform: translate(-50%,0); }
 .custom-video-controls button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; color: #fff; background: rgba(255,255,255,.14); cursor: pointer; }
 .custom-video-controls button svg { width: 16px; height: 16px; }
 .custom-video-controls span { min-width: 34px; color: rgba(255,255,255,.78); font-size: 9px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -260,7 +260,7 @@ button { color: inherit; }
   .video-modal header button{width:43px;height:43px;background:rgba(4,22,24,.86);backdrop-filter:blur(8px)}
   .video-frame,.video-modal:fullscreen .video-frame,.video-modal:-webkit-full-screen .video-frame{width:100%;height:100%;height:100dvh;max-height:none;aspect-ratio:auto;box-shadow:none}
   .video-frame video,.video-frame iframe{width:100%;height:100%;background:#000}
-  .custom-video-controls{min-height:58px;padding:18px max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));gap:7px}
+  .custom-video-controls{bottom:max(10px,env(safe-area-inset-bottom));width:calc(100% - 24px);height:52px;padding:7px 9px;gap:7px}
   .custom-video-controls button{width:34px;height:34px}.custom-video-controls span{font-size:8px;min-width:31px}
 }
 
