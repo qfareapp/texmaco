@@ -87,19 +87,22 @@
 .admin-shell { overflow: auto; background: #f3f2ed; }
 .admin-sidebar { position: fixed; z-index: 20; left: 0; top: 0; bottom: 0; width: 245px; background: #0d292b; color: #fff; transition: width .3s; display: flex; flex-direction: column; }
 .admin-sidebar.collapsed { width: 76px; }
-.admin-sidebar-head { height: 92px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.08); overflow: hidden; }
+.admin-sidebar-head { height: 92px; flex: 0 0 92px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.08); overflow: hidden; }
 .admin-sidebar-head > button { border: 0; background: rgba(255,255,255,.07); color: #fff; width: 31px; height: 31px; display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
 .admin-sidebar-head > button svg { width: 15px; }
 .admin-sidebar.collapsed .admin-sidebar-head { padding: 0 22px; }
 .admin-sidebar.collapsed .admin-sidebar-head > button { position: absolute; top: 66px; left: 23px; background: #173d3e; }
-.workspace-label { font-size: 7px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.35); margin: 34px 25px 12px; white-space: nowrap; }
-.admin-sidebar nav { display: flex; flex-direction: column; gap: 3px; }
+.workspace-label { flex: 0 0 auto; font-size: 7px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.35); margin: 34px 25px 12px; white-space: nowrap; }
+.admin-sidebar nav { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 3px; padding-bottom: 10px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+.admin-sidebar nav::-webkit-scrollbar { width: 5px; }
+.admin-sidebar nav::-webkit-scrollbar-track { background: transparent; }
+.admin-sidebar nav::-webkit-scrollbar-thumb { border-radius: 5px; background: rgba(255,255,255,.22); }
 .admin-sidebar nav button { height: 48px; border: 0; border-left: 2px solid transparent; background: transparent; color: rgba(255,255,255,.55); display: flex; align-items: center; gap: 14px; padding: 0 23px; cursor: pointer; white-space: nowrap; overflow: hidden; }
 .admin-sidebar nav button svg { width: 17px; flex: 0 0 auto; }
 .admin-sidebar nav button span { font-size: 11px; }
 .admin-sidebar nav button:hover,.admin-sidebar nav button.active { color: #fff; background: rgba(255,255,255,.06); }
 .admin-sidebar nav button.active { border-left-color: var(--admin-orange); }
-.admin-user { margin-top: auto; border-top: 1px solid rgba(255,255,255,.08); padding: 21px; display: flex; align-items: center; gap: 10px; overflow: hidden; }
+.admin-user { flex: 0 0 auto; margin-top: 0; border-top: 1px solid rgba(255,255,255,.08); padding: 21px; display: flex; align-items: center; gap: 10px; overflow: hidden; }
 .admin-user > div { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e66331; font-size: 10px; flex: 0 0 auto; }
 .admin-user > span { display: flex; flex-direction: column; min-width: 100px; }
 .admin-user strong { font-size: 9px; }
