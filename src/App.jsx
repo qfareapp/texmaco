@@ -222,6 +222,13 @@ function Slide({ slide, active, index }) {
 
 function Sidebar({ current, open, onToggle, onNavigate, unlocked, slides, segments }) {
   const activeSegment = slides[current].segment;
+  const orderedSegments = segments
+    .map((segment) => ({
+      ...segment,
+      firstSlideIndex: slides.findIndex((slide) => slide.segment === segment.id),
+    }))
+    .filter((segment) => segment.firstSlideIndex >= 0)
+    .sort((a, b) => a.firstSlideIndex - b.firstSlideIndex);
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
       <div className="sidebar-top">
@@ -237,8 +244,8 @@ function Sidebar({ current, open, onToggle, onNavigate, unlocked, slides, segmen
         onPointerDown={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
       >
-        {segments.map((segment) => {
-          const firstIndex = slides.findIndex((slide) => slide.segment === segment.id);
+        {orderedSegments.map((segment) => {
+          const firstIndex = segment.firstSlideIndex;
           const isLocked = firstIndex >= LOCKED_FROM && !unlocked;
           return (
             <button
@@ -247,7 +254,7 @@ function Sidebar({ current, open, onToggle, onNavigate, unlocked, slides, segmen
               onClick={() => onNavigate(firstIndex)}
               title={!open ? segment.label : undefined}
             >
-              <span className="nav-number">{segment.number}</span>
+              <span className="nav-number">{String(firstIndex + 1).padStart(2, '0')}</span>
               {open && <span className="nav-label">{segment.label}</span>}
               {open && isLocked && <span className="nav-lock">•</span>}
             </button>

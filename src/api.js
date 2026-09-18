@@ -4,7 +4,11 @@ async function request(path, options = {}) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 30000);
   try {
-    const response = await fetch(`${API_URL}${path}`, { ...options, signal: options.signal || controller.signal });
+    const response = await fetch(`${API_URL}${path}`, {
+      cache: 'no-store',
+      ...options,
+      signal: options.signal || controller.signal,
+    });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(data.message || 'Request failed.');

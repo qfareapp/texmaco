@@ -8,9 +8,14 @@ export const brochureRouter = express.Router();
 
 brochureRouter.get('/', async (_req, res, next) => {
   try {
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    });
     const [segments, slides, settings] = await Promise.all([
-      Segment.find().sort({ order: 1 }).lean(),
-      Slide.find({ active: true }).sort({ order: 1 }).lean(),
+      Segment.find().sort({ order: 1, _id: 1 }).lean(),
+      Slide.find({ active: true }).sort({ order: 1, _id: 1 }).lean(),
       SiteSetting.findOne({ key: 'main' }).lean(),
     ]);
     res.json({

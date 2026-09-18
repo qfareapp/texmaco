@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -192,9 +193,22 @@ adminRouter.post('/slides', upload.single('image'), async (req, res, next) => {
 });
 adminRouter.patch('/slides/reorder', async (req, res, next) => {
   try {
-    if (!Array.isArray(req.body.ids)) return res.status(400).json({ message: 'Slide order is required.' });
-    await Slide.bulkWrite(req.body.ids.map((id, order) => ({ updateOne: { filter: { _id: id }, update: { order } } })));
-    res.json({ message: 'Slide order updated.' });
+    if (!Array.isArray(req.body.ids) || !req.body.ids.length) {
+      return res.status(400).json({ message: 'Slide order is required.' });
+    }
+    const ids = req.body.ids.map(String);
+    if (new Set(ids).size !== ids.length || ids.some((id) => !mongoose.isValidObjectId(id))) {
+      return res.status(400).json({ message: 'Slide order contains an invalid slide.' });
+    }
+    const matchedSlides = await Slide.countDocuments({ _id: { $in: ids } });
+    if (matchedSlides !== ids.length) {
+      return res.status(400).json({ message: 'One or more slides no longer exist. Refresh and try again.' });
+    }
+    await Slide.bulkWrite(ids.map((id, order) => ({
+      updateOne: { filter: { _id: id }, update: { $set: { order } } },
+    })));
+    res.set('Cache-Control', 'no-store');
+    res.json({ message: 'Slide order updated.', slides: await Slide.find().sort({ order: 1, _id: 1 }) });
   } catch (error) { next(error); }
 });
 adminRouter.patch('/slides/:id', upload.single('image'), async (req, res, next) => {
