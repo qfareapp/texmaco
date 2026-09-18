@@ -128,7 +128,7 @@ button { color: inherit; }
 .brochure--pseudo-fullscreen .stage-footer { padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
 .sidebar { z-index: 30; position: fixed; left: 0; top: 0; bottom: 0; width: 82px; background: rgba(5,20,20,.96); border-right: 1px solid rgba(255,255,255,.1); transition: width .45s cubic-bezier(.7,0,.2,1); display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(18px); }
 .sidebar--open { width: 235px; }
-.sidebar-top { min-height: 105px; padding: 30px 22px; display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.sidebar-top { min-height: 105px; padding: 30px 22px; display: flex; align-items: center; justify-content: space-between; gap: 15px; flex: 0 0 auto; }
 .sidebar-top .brand { padding: 5px 6px; background: #f5f3ed; }
 .sidebar-top .brand-logo { width: 112px; }
 .sidebar-top .brand--compact .brand-logo { width: 38px; }
@@ -136,14 +136,17 @@ button { color: inherit; }
 .icon-button:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3); }
 .icon-button svg { width: 16px; }
 .sidebar:not(.sidebar--open) .sidebar-toggle { position: absolute; left: 22px; top: 82px; border: 0; }
-.chapters-label { margin: 32px 27px 14px; text-transform: uppercase; font-size: 8px; letter-spacing: .24em; opacity: .4; height: 12px; }
-.sidebar nav { display: flex; flex-direction: column; }
-.sidebar nav button { height: 53px; border: 0; border-left: 2px solid transparent; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 15px; color: rgba(255,255,255,.44); padding: 0 27px; white-space: nowrap; text-align: left; transition: .25s; }
+.chapters-label { margin: 32px 27px 14px; text-transform: uppercase; font-size: 8px; letter-spacing: .24em; opacity: .4; height: 12px; flex: 0 0 auto; }
+.sidebar nav { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: rgba(255,255,255,.25) transparent; scrollbar-width: thin; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.sidebar nav::-webkit-scrollbar { width: 4px; }
+.sidebar nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 999px; }
+.sidebar nav button { height: 53px; flex: 0 0 53px; border: 0; border-left: 2px solid transparent; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 15px; color: rgba(255,255,255,.44); padding: 0 27px; white-space: nowrap; text-align: left; transition: .25s; }
 .sidebar nav button:hover { color: #fff; background: rgba(255,255,255,.04); }
 .sidebar nav button.active { color: #fff; border-left-color: var(--orange); background: linear-gradient(90deg,rgba(232,93,39,.14),transparent); }
 .nav-number { font-family: 'Manrope'; font-size: 9px; letter-spacing: .12em; }
 .nav-label { font-size: 12px; letter-spacing: .025em; flex: 1; }.nav-lock { color: var(--orange); }
-.sidebar-bottom { margin-top: auto; padding: 24px 26px; border-top: 1px solid rgba(255,255,255,.07); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; opacity: .5; white-space: nowrap; }
+.sidebar-bottom { flex: 0 0 auto; padding: 24px 26px; border-top: 1px solid rgba(255,255,255,.07); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 8px; letter-spacing: .1em; text-transform: uppercase; opacity: .5; white-space: nowrap; }
 .access-dot { width: 16px; height: 16px; border: 1px solid rgba(255,255,255,.2); border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; }.access-dot span { width: 5px; height: 5px; background: #d77d35; border-radius: 50%; }.access-dot span.unlocked { background: #68bd91; }
 .stage { height: 100%; margin-left: 82px; position: relative; overflow: hidden; transition: margin-left .45s cubic-bezier(.7,0,.2,1); touch-action: none; }
 .stage--rail-open { margin-left: 235px; }
@@ -259,7 +262,7 @@ button { color: inherit; }
 
 @media (max-width: 850px), (orientation: landscape) and (max-height: 600px) {
   .welcome { min-height: 0; }.welcome-copy { top: 24%; left: 7vw; width: 54vw; }.welcome-copy h1 { font-size: 7vw; }.welcome-copy p { font-size: 11px; line-height: 1.5; width: 80%; }.experience-card { width: 34vw; right: 3vw; padding: 12px; top: 10vh; grid-template-columns: 34px 1fr; }.experience-icon { width: 32px; height: 32px; }.experience-card strong { font-size: 12px; }.experience-card small { display:none; }.experience-card > button:not(.text-button) { height: 37px; font-size: 8px; }.edition { display:none; }.welcome-header { top: 4vh; }.welcome-footer { bottom: 3vh; }
-  .sidebar { width: 62px; }.sidebar--open { width: 190px; }.stage { margin-left: 62px; }.stage--rail-open { margin-left: 190px; }.sidebar-top { padding: 20px 15px; min-height: 74px; }.sidebar:not(.sidebar--open) .sidebar-toggle { left:12px;top:59px}.sidebar-top .brand-logo{width:92px}.sidebar-top .brand--compact .brand-logo{width:30px}.chapters-label{margin:25px 18px 7px}.sidebar nav button{height:40px;padding:0 18px}.sidebar-bottom{padding:15px 18px}.slide-content{left:5vw;width:54vw}.slide-content h2{font-size:5.5vw;margin:15px 0}.slide-content p{font-size:10px;line-height:1.5;max-width:370px}.slide-stat{margin-top:20px}.slide-eyebrow{font-size:7px}.stage-header{padding:15px 20px}.stage-footer{bottom:15px;left:20px;right:20px}.round-arrow{width:34px;height:34px}.swipe-hint{display:flex;bottom:20px}.progress-track{width:70px}.gate-panel{width:62vw;padding:22px 35px}.gate-preview{padding:5vw}.gate-heading{margin-bottom:2vh}.gate-heading h3{font-size:24px}.lead-form{gap:8px}.lead-form input,.lead-form select{height:36px}.primary-button{height:38px}.privacy{display:none}.gate-progress{margin-bottom:0}.gate-brand{top:18px;left:20px}.gate-brand .brand-logo{width:125px}.gate-close{right:16px;top:16px}.otp-heading{margin-top:5vh}.otp-fields input{width:39px;height:45px}.gate-preview strong{font-size:24px}
+  .sidebar { width: 62px; }.sidebar--open { width: 190px; }.stage { margin-left: 62px; }.stage--rail-open { margin-left: 190px; }.sidebar-top { padding: 20px 15px; min-height: 74px; }.sidebar:not(.sidebar--open) .sidebar-toggle { left:12px;top:59px}.sidebar-top .brand-logo{width:92px}.sidebar-top .brand--compact .brand-logo{width:30px}.chapters-label{margin:25px 18px 7px}.sidebar nav button{height:40px;flex-basis:40px;padding:0 18px}.sidebar-bottom{padding:15px 18px}.slide-content{left:5vw;width:54vw}.slide-content h2{font-size:5.5vw;margin:15px 0}.slide-content p{font-size:10px;line-height:1.5;max-width:370px}.slide-stat{margin-top:20px}.slide-eyebrow{font-size:7px}.stage-header{padding:15px 20px}.stage-footer{bottom:15px;left:20px;right:20px}.round-arrow{width:34px;height:34px}.swipe-hint{display:flex;bottom:20px}.progress-track{width:70px}.gate-panel{width:62vw;padding:22px 35px}.gate-preview{padding:5vw}.gate-heading{margin-bottom:2vh}.gate-heading h3{font-size:24px}.lead-form{gap:8px}.lead-form input,.lead-form select{height:36px}.primary-button{height:38px}.privacy{display:none}.gate-progress{margin-bottom:0}.gate-brand{top:18px;left:20px}.gate-brand .brand-logo{width:125px}.gate-close{right:16px;top:16px}.otp-heading{margin-top:5vh}.otp-fields input{width:39px;height:45px}.gate-preview strong{font-size:24px}
 }
 
 @media (orientation: portrait) and (max-width: 700px) {

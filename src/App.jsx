@@ -231,7 +231,12 @@ function Sidebar({ current, open, onToggle, onNavigate, unlocked, slides, segmen
         </button>
       </div>
       <div className="chapters-label">{open ? 'Explore' : '—'}</div>
-      <nav aria-label="Brochure chapters">
+      <nav
+        aria-label="Brochure chapters"
+        onWheel={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+      >
         {segments.map((segment) => {
           const firstIndex = slides.findIndex((slide) => slide.segment === segment.id);
           const isLocked = firstIndex >= LOCKED_FROM && !unlocked;
