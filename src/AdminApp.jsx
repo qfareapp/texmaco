@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, ChevronLeft, ChevronRight, Clapperboard, Cloud,
-  Eye, EyeOff, FileImage, ImagePlus, LayoutDashboard, LoaderCircle, LogOut,
+  Eye, EyeOff, FileImage, GripVertical, ImagePlus, LayoutDashboard, LoaderCircle, LogOut,
   Link2, Menu, Newspaper, Pencil, Play, Plus, RefreshCw, Search, Tags, Trash2, Upload, Users, X,
 } from 'lucide-react';
 import { createAdminApi, loginAdmin } from './api';
@@ -100,11 +100,72 @@ function SlideEditor({ slide, segments, onClose, onSaved, onManageTabs, api }) {
 }
 
 function SlidesPage({ slides, segments, reload, api, onManageTabs }) {
-  const [editing, setEditing] = useState(undefined); const [confirm, setConfirm] = useState(null); const [busy, setBusy] = useState(false);
-  const move = async (index, direction) => { const reordered = [...slides]; const target = index + direction; if (target < 0 || target >= slides.length) return; [reordered[index],reordered[target]]=[reordered[target],reordered[index]]; setBusy(true); try { await api.reorderSlides(reordered.map((s)=>s._id)); await reload(); } finally { setBusy(false); } };
+  const [editing, setEditing] = useState(undefined);
+  const [confirm, setConfirm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [orderedSlides, setOrderedSlides] = useState(slides);
+  const [draggedId, setDraggedId] = useState('');
+  const [dragOverId, setDragOverId] = useState('');
+  const [orderMessage, setOrderMessage] = useState('');
+
+  useEffect(() => setOrderedSlides(slides), [slides]);
+
+  const saveOrder = async (nextSlides, previousSlides) => {
+    setOrderedSlides(nextSlides);
+    setBusy(true);
+    setOrderMessage('Saving slide order…');
+    try {
+      await api.reorderSlides(nextSlides.map((slide) => slide._id));
+      setOrderMessage('Slide order saved.');
+      await reload();
+    } catch (error) {
+      setOrderedSlides(previousSlides);
+      setOrderMessage(error.message);
+    } finally {
+      setBusy(false);
+      window.setTimeout(() => setOrderMessage(''), 2400);
+    }
+  };
+
+  const move = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= orderedSlides.length || busy) return;
+    const previous = [...orderedSlides];
+    const reordered = [...orderedSlides];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    void saveOrder(reordered, previous);
+  };
+
+  const dropSlide = (targetId) => {
+    if (!draggedId || draggedId === targetId || busy) {
+      setDraggedId(''); setDragOverId(''); return;
+    }
+    const previous = [...orderedSlides];
+    const reordered = [...orderedSlides];
+    const fromIndex = reordered.findIndex((slide) => slide._id === draggedId);
+    const targetIndex = reordered.findIndex((slide) => slide._id === targetId);
+    if (fromIndex < 0 || targetIndex < 0) return;
+    const [movedSlide] = reordered.splice(fromIndex, 1);
+    reordered.splice(targetIndex, 0, movedSlide);
+    setDraggedId(''); setDragOverId('');
+    void saveOrder(reordered, previous);
+  };
+
   const remove = async () => { setBusy(true); try { await api.deleteSlide(confirm._id); setConfirm(null); await reload(); } finally { setBusy(false); } };
-  return <div className="slides-page"><div className="page-tools"><div><strong>{slides.length} slides</strong><span>Drag-free ordering with precise controls</span></div><button className="admin-primary" onClick={() => setEditing(null)}><Plus /> Add slide</button></div>
-    {!slides.length ? <div className="empty-state"><div><ImagePlus /></div><h2>No slides uploaded yet</h2><p>Add the first image from your Texmaco brochure. It will be securely stored in Cloudinary.</p><button className="admin-primary" onClick={() => setEditing(null)}><Plus /> Add first slide</button></div> : <div className="slide-admin-list">{slides.map((slide,index)=><article key={slide._id}><div className="order-buttons"><button onClick={()=>move(index,-1)} disabled={!index||busy}><ArrowUp /></button><span>{String(index+1).padStart(2,'0')}</span><button onClick={()=>move(index,1)} disabled={index===slides.length-1||busy}><ArrowDown /></button></div><img src={slide.image} alt="" /><div className="slide-row-copy"><span>{segments.find((s)=>s.slug===slide.segment)?.label||slide.segment}</span><h3>{slide.title}</h3><p>{slide.copy||'No description added.'}</p></div><div className={`status-pill ${slide.active?'live':'draft'}`}><i />{slide.active?'Live':'Hidden'}</div><div className="row-actions"><button onClick={()=>setEditing(slide)} title="Edit"><Pencil /></button><button className="delete" onClick={()=>setConfirm(slide)} title="Delete"><Trash2 /></button></div></article>)}</div>}
+  return <div className="slides-page"><div className="page-tools"><div><strong>{orderedSlides.length} slides</strong><span>Drag the handle or use the arrows to change slide order</span></div><button className="admin-primary" onClick={() => setEditing(null)}><Plus /> Add slide</button></div>
+    {orderMessage && <div className={`slide-order-message ${orderMessage.includes('saved') ? 'success' : ''}`}>{orderMessage}</div>}
+    {!orderedSlides.length ? <div className="empty-state"><div><ImagePlus /></div><h2>No slides uploaded yet</h2><p>Add the first image from your Texmaco brochure. It will be securely stored in Cloudinary.</p><button className="admin-primary" onClick={() => setEditing(null)}><Plus /> Add first slide</button></div> : <div className={`slide-admin-list ${busy ? 'is-saving' : ''}`}>{orderedSlides.map((slide,index)=><article
+      key={slide._id}
+      className={`${draggedId === slide._id ? 'dragging' : ''} ${dragOverId === slide._id ? 'drag-over' : ''}`}
+      onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; if (draggedId !== slide._id) setDragOverId(slide._id); }}
+      onDrop={(event) => { event.preventDefault(); dropSlide(slide._id); }}
+    ><div className="order-buttons"><div
+      className="drag-handle"
+      draggable={!busy}
+      title="Drag to reorder"
+      onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', slide._id); setDraggedId(slide._id); }}
+      onDragEnd={() => { setDraggedId(''); setDragOverId(''); }}
+    ><GripVertical /></div><button onClick={()=>move(index,-1)} disabled={!index||busy} title="Move slide up"><ArrowUp /></button><span>{String(index+1).padStart(2,'0')}</span><button onClick={()=>move(index,1)} disabled={index===orderedSlides.length-1||busy} title="Move slide down"><ArrowDown /></button></div><img src={slide.image} alt="" /><div className="slide-row-copy"><span>{segments.find((s)=>s.slug===slide.segment)?.label||slide.segment}</span><h3>{slide.title}</h3><p>{slide.copy||'No description added.'}</p></div><div className={`status-pill ${slide.active?'live':'draft'}`}><i />{slide.active?'Live':'Hidden'}</div><div className="row-actions"><button onClick={()=>setEditing(slide)} title="Edit"><Pencil /></button><button className="delete" onClick={()=>setConfirm(slide)} title="Delete"><Trash2 /></button></div></article>)}</div>}
     {editing !== undefined && <SlideEditor slide={editing} segments={segments} api={api} onManageTabs={() => { setEditing(undefined); onManageTabs(); }} onClose={()=>setEditing(undefined)} onSaved={async()=>{setEditing(undefined);await reload();}} />}
     {confirm && <div className="confirm-backdrop"><div className="confirm-box"><div><Trash2 /></div><h3>Delete this slide?</h3><p>The image “{confirm.title}” will also be removed from Cloudinary. This cannot be undone.</p><footer><button onClick={()=>setConfirm(null)}>Cancel</button><button onClick={remove} disabled={busy}>Delete permanently</button></footer></div></div>}
   </div>;
